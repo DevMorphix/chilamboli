@@ -1,8 +1,8 @@
 import { connectDB } from "../utils/db"
 import { School } from "../database/models"
 
-export default defineEventHandler(async () => {
-  await connectDB()
+export default defineEventHandler(async (event) => {
+  await connectDB(event)
 
   try {
     const schools = await School.find().lean()

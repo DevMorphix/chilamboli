@@ -1,11 +1,12 @@
 import mongoose from "mongoose"
+import type { H3Event } from "h3"
 
 let isConnected = false
 
-export const connectDB = async () => {
+export const connectDB = async (event?: H3Event) => {
   if (isConnected) return
 
-  const config = useRuntimeConfig()
+  const config = useRuntimeConfig(event)
   const uri = config.mongodbUri;
 
   try {
@@ -22,12 +23,14 @@ export const connectDB = async () => {
  * Execute operations within a MongoDB transaction.
  * If any operation fails, all changes are rolled back.
  * @param callback - Async function that receives the session and performs DB operations
+ * @param event - Optional H3 event for runtime config access
  * @returns The result of the callback function
  */
 export const withTransaction = async <T>(
-  callback: (session: mongoose.ClientSession) => Promise<T>
+  callback: (session: mongoose.ClientSession) => Promise<T>,
+  event?: H3Event
 ): Promise<T> => {
-  await connectDB()
+  await connectDB(event)
   const session = await mongoose.startSession()
 
   try {

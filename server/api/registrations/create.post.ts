@@ -2,12 +2,12 @@ import { connectDB, withTransaction } from "../../utils/db"
 import { Event, Student, Registration } from "../../database/models"
 
 export default defineEventHandler(async (event) => {
-  await connectDB()
+  await connectDB(event)
   const body = await readBody(event)
 
-  const { eventId, schoolId, teamName, captainData, teamMembers } = body
+  const { eventId, schoolId, teamName, participantIds, registeredByFacultyId } = body
 
-  if (!eventId || !schoolId) {
+  if (!eventId || !schoolId || !participantIds || participantIds.length === 0 || !registeredByFacultyId) {
     throw createError({
       statusCode: 400,
       message: "Missing required fields",
@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Fetch the event to validate (outside transaction for read-only)
+    // Fetch the event
     const eventData = await Event.findOne({ id: eventId })
 
     if (!eventData) {
@@ -25,104 +25,120 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Validate team size
-    const totalMembers = teamMembers ? teamMembers.length + 1 : 1 // +1 for captain
-    if (eventData.maxTeamSize && totalMembers > eventData.maxTeamSize) {
-      throw createError({
-        statusCode: 400,
-        message: `Team size exceeds maximum of ${eventData.maxTeamSize}`,
-      })
-    }
-
-    // Use transaction for all write operations
+    // Use transaction for all operations
     const result = await withTransaction(async (session) => {
-      // Step 1: Create or get captain student record
-      let captainId: string
+      // Fetch all participants
+      const participants = await Student.find({ id: { $in: participantIds } }).session(session)
 
-      if (captainData.isNew) {
-        // Create new student for captain within transaction
-        const newCaptain = await Student.create(
-          [
-            {
-              firstName: captainData.firstName,
-              lastName: captainData.lastName,
-              email: captainData.email || null,
-              phone: captainData.phone || null,
-              dateOfBirth: captainData.dateOfBirth,
-              schoolId,
-            },
-          ],
-          { session }
-        )
-
-        captainId = newCaptain[0].id
-      } else {
-        captainId = captainData.id
+      if (participants.length !== participantIds.length) {
+        throw createError({
+          statusCode: 404,
+          message: "One or more participants not found",
+        })
       }
 
-      // Step 2: Create new team members if any
-      const newMemberIds: string[] = []
-      if (teamMembers && teamMembers.length > 0) {
-        for (const member of teamMembers) {
-          if (member.isNew) {
-            const newMember = await Student.create(
-              [
-                {
-                  firstName: member.firstName,
-                  lastName: member.lastName,
-                  email: member.email || null,
-                  phone: member.phone || null,
-                  dateOfBirth: member.dateOfBirth,
-                  schoolId,
-                },
-              ],
-              { session }
-            )
-            newMemberIds.push(newMember[0].id)
-          } else {
-            newMemberIds.push(member.id)
-          }
+      // Validate all participants are from the same school
+      const allFromSameSchool = participants.every((p) => p.schoolId === schoolId)
+      if (!allFromSameSchool) {
+        throw createError({
+          statusCode: 400,
+          message: "All participants must be from the same school",
+        })
+      }
+
+      // Validate age category for non-combined events
+      if (eventData.ageCategory !== "Combined") {
+        const wrongCategoryParticipants = participants.filter((p) => p.ageCategory !== eventData.ageCategory)
+
+        if (wrongCategoryParticipants.length > 0) {
+          throw createError({
+            statusCode: 400,
+            message: `All participants must be in ${eventData.ageCategory} category for this event`,
+          })
         }
       }
 
-      // Step 3: Validate age restrictions for group events
-      if (eventData.eventType === "group" && (newMemberIds.length > 0 || captainData.isNew)) {
-        const allStudentIds = [captainId, ...newMemberIds]
-        const students = await Student.find({ id: { $in: allStudentIds } }).session(session)
+      // Validate gender requirements
+      if (eventData.gender && eventData.gender !== "All") {
+        // This would require gender field in student model
+        // For now, we'll skip gender validation
+      }
 
-        // Validate all students are in the correct age range
-        const today = new Date()
-        for (const student of students) {
-          const birthDate = new Date(student.dateOfBirth)
-          let age = today.getFullYear() - birthDate.getFullYear()
-          const monthDiff = today.getMonth() - birthDate.getMonth()
+      // Validate team size for group events
+      if (eventData.eventType === "Group" && eventData.maxTeamSize) {
+        if (participants.length > eventData.maxTeamSize) {
+          throw createError({
+            statusCode: 400,
+            message: `Team size cannot exceed ${eventData.maxTeamSize} members`,
+          })
+        }
 
-          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-            age--
+        if (!teamName) {
+          throw createError({
+            statusCode: 400,
+            message: "Team name is required for group events",
+          })
+        }
+      }
+
+      // Check participation limits for each participant
+      // Rule: 1 Individual + 1 Group (+ Fashion Show special, + Combined not counted)
+      for (const participant of participants) {
+        const existingRegistrations = await Registration.find({
+          participantIds: participant.id,
+        }).session(session)
+
+        // Count registrations by type
+        let individualCount = 0
+        let groupCount = 0
+
+        for (const reg of existingRegistrations) {
+          const regEvent = await Event.findOne({ id: reg.eventId }).session(session)
+          if (!regEvent) continue
+
+          // Skip combined category events - they don't count toward limit
+          if (regEvent.ageCategory === "Combined") continue
+
+          // Skip Fashion Show - it's a special exception
+          if (regEvent.name === "Fashion Show") continue
+
+          if (regEvent.eventType === "Individual") {
+            individualCount++
+          } else if (regEvent.eventType === "Group") {
+            groupCount++
           }
+        }
 
-          if (age < eventData.minAge || age > eventData.maxAge) {
+        // Validate against current event type (if not Combined or Fashion Show)
+        if (eventData.ageCategory !== "Combined" && eventData.name !== "Fashion Show") {
+          if (eventData.eventType === "Individual" && individualCount >= 1) {
             throw createError({
               statusCode: 400,
-              message: `Student ${student.firstName} ${student.lastName} (age ${age}) is not in the required age range (${eventData.minAge}-${eventData.maxAge})`,
+              message: `${participant.studentName} has already registered for an individual event`,
+            })
+          }
+
+          if (eventData.eventType === "Group" && groupCount >= 1) {
+            throw createError({
+              statusCode: 400,
+              message: `${participant.studentName} has already registered for a group event`,
             })
           }
         }
       }
 
-      // Step 4: Create the registration with participants embedded
-      const participantIdsList = [captainId, ...newMemberIds]
-
+      // Create the registration
       const registration = await Registration.create(
         [
           {
             eventId,
             schoolId,
             teamName: teamName || null,
-            participantIds: participantIdsList,
+            participantIds,
+            registeredByFacultyId,
           },
         ],
-        { session }
+        { session },
       )
 
       return {
@@ -130,7 +146,7 @@ export default defineEventHandler(async (event) => {
         registrationId: registration[0].id,
         message: "Registration completed successfully",
       }
-    })
+    }, event)
 
     return result
   } catch (error: any) {

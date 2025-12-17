@@ -2,7 +2,7 @@ import { connectDB } from "../../utils/db"
 import { Registration } from "../../database/models"
 
 export default defineEventHandler(async (event) => {
-  await connectDB()
+  await connectDB(event)
   const id = event.context.params?.id
 
   if (!id) {

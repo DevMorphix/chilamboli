@@ -2,7 +2,7 @@ import { connectDB } from "../../utils/db"
 import { Student } from "../../database/models"
 
 export default defineEventHandler(async (event) => {
-  await connectDB()
+  await connectDB(event)
   const query = getQuery(event)
   const searchTerm = query.q as string
   const schoolId = query.schoolId as string | null
