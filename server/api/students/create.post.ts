@@ -1,5 +1,6 @@
-import { withTransaction } from "../../utils/db"
-import { Student } from "../../database/models"
+import { useDB } from "../../utils/db"
+import { students } from "../../database/schema"
+import { nanoid } from "nanoid"
 
 function calculateAgeCategory(dateOfBirth: string): "Sub Junior" | "Junior" | "Senior" {
   const dob = new Date(dateOfBirth)
@@ -21,6 +22,7 @@ function calculateAgeCategory(dateOfBirth: string): "Sub Junior" | "Junior" | "S
 }
 
 export default defineEventHandler(async (event) => {
+  const db = useDB(event)
   const body = await readBody(event)
 
   const {
@@ -56,31 +58,32 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const student = await withTransaction(async (session) => {
-      const ageCategory = calculateAgeCategory(dateOfBirth)
+    const ageCategory = calculateAgeCategory(dateOfBirth)
+    const id = nanoid()
+    const studentId = `STU-${nanoid(10)}`.toUpperCase()
+    const chestNumber = `CH-${nanoid(8)}`.toUpperCase()
 
-      const [newStudent] = await Student.create(
-        [
-          {
-            studentName,
-            dateOfBirth,
-            ageCategory,
-            class: studentClass,
-            rollNumber,
-            photoUrl,
-            disabilityCertificateUrl,
-            schoolId,
-            addedByFacultyId,
-          },
-        ],
-        { session },
-      )
-      return newStudent
-    }, event)
+    const [newStudent] = await db
+      .insert(students)
+      .values({
+        id,
+        studentId,
+        chestNumber,
+        studentName,
+        dateOfBirth,
+        ageCategory,
+        class: studentClass,
+        rollNumber,
+        photoUrl,
+        disabilityCertificateUrl,
+        schoolId,
+        addedByFacultyId,
+      })
+      .returning()
 
     return {
       success: true,
-      student: student.toObject(),
+      student: newStudent,
       message: "Student created successfully",
     }
   } catch (error) {

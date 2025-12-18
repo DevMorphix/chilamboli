@@ -1,8 +1,9 @@
-import { connectDB } from "../../utils/db"
-import { Student } from "../../database/models"
+import { useDB } from "../../utils/db"
+import { students } from "../../database/schema"
+import { like, and, eq, or } from "drizzle-orm"
 
 export default defineEventHandler(async (event) => {
-  await connectDB(event)
+  const db = useDB(event)
   const query = getQuery(event)
   const searchTerm = query.q as string
   const schoolId = query.schoolId as string | null
@@ -12,20 +13,39 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const filter: any = {
-      $or: [
-        { firstName: { $regex: searchTerm, $options: "i" } },
-        { lastName: { $regex: searchTerm, $options: "i" } },
-        { email: { $regex: searchTerm, $options: "i" } },
-      ],
-    }
-
+    const searchPattern = `%${searchTerm}%`
+    
+    let result
     if (schoolId) {
-      filter.schoolId = schoolId
+      result = await db
+        .select()
+        .from(students)
+        .where(
+          and(
+            eq(students.schoolId, schoolId),
+            or(
+              like(students.studentName, searchPattern),
+              like(students.studentId, searchPattern),
+              like(students.chestNumber, searchPattern)
+            )
+          )
+        )
+        .limit(10)
+    } else {
+      result = await db
+        .select()
+        .from(students)
+        .where(
+          or(
+            like(students.studentName, searchPattern),
+            like(students.studentId, searchPattern),
+            like(students.chestNumber, searchPattern)
+          )
+        )
+        .limit(10)
     }
 
-    const students = await Student.find(filter).limit(10).lean()
-    return students
+    return result
   } catch (error) {
     console.error("Error searching students:", error)
     throw createError({

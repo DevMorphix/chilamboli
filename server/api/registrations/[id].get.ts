@@ -1,8 +1,9 @@
-import { connectDB } from "../../utils/db"
-import { Registration } from "../../database/models"
+import { useDB } from "../../utils/db"
+import { registrations, events, schools, students, registrationParticipants } from "../../database/schema"
+import { eq, inArray } from "drizzle-orm"
 
 export default defineEventHandler(async (event) => {
-  await connectDB(event)
+  const db = useDB(event)
   const id = event.context.params?.id
 
   if (!id) {
@@ -13,7 +14,11 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const registration = await Registration.findOne({ id }).lean()
+    const [registration] = await db
+      .select()
+      .from(registrations)
+      .where(eq(registrations.id, id))
+      .limit(1)
 
     if (!registration) {
       throw createError({
@@ -23,16 +28,39 @@ export default defineEventHandler(async (event) => {
     }
 
     // Fetch related data
-    const { Event, School, Student } = await import("../../database/models")
-    const event = await Event.findOne({ id: (registration as any).eventId }).lean()
-    const school = await School.findOne({ id: (registration as any).schoolId }).lean()
-    const participants = await Student.find({ id: { $in: (registration as any).participantIds || [] } }).lean()
+    const [eventData] = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, registration.eventId))
+      .limit(1)
+
+    const [school] = await db
+      .select()
+      .from(schools)
+      .where(eq(schools.id, registration.schoolId))
+      .limit(1)
+
+    // Get participant IDs from junction table
+    const participantRecords = await db
+      .select()
+      .from(registrationParticipants)
+      .where(eq(registrationParticipants.registrationId, registration.id))
+
+    const participantIds = participantRecords.map((p) => p.studentId)
+
+    let participants: (typeof students.$inferSelect)[] = []
+    if (participantIds.length > 0) {
+      participants = await db
+        .select()
+        .from(students)
+        .where(inArray(students.id, participantIds))
+    }
 
     return {
-      id: (registration as any).id,
-      teamName: (registration as any).teamName,
-      createdAt: (registration as any).createdAt,
-      event,
+      id: registration.id,
+      teamName: registration.teamName,
+      createdAt: registration.createdAt,
+      event: eventData,
       school,
       participants,
     }

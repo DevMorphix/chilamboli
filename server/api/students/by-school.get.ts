@@ -1,8 +1,9 @@
-import { connectDB } from "../../utils/db"
-import { Student } from "../../database/models"
+import { useDB } from "../../utils/db"
+import { students } from "../../database/schema"
+import { eq, and, desc } from "drizzle-orm"
 
 export default defineEventHandler(async (event) => {
-  await connectDB(event)
+  const db = useDB(event)
   const query = getQuery(event)
   const { schoolId, ageCategory } = query
 
@@ -14,17 +15,30 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const filter: any = { schoolId: schoolId as string }
+    let result
 
     if (ageCategory) {
-      filter.ageCategory = ageCategory as string
+      result = await db
+        .select()
+        .from(students)
+        .where(
+          and(
+            eq(students.schoolId, schoolId as string),
+            eq(students.ageCategory, ageCategory as string)
+          )
+        )
+        .orderBy(desc(students.createdAt))
+    } else {
+      result = await db
+        .select()
+        .from(students)
+        .where(eq(students.schoolId, schoolId as string))
+        .orderBy(desc(students.createdAt))
     }
-
-    const students = await Student.find(filter).sort({ createdAt: -1 }).lean()
 
     return {
       success: true,
-      students,
+      students: result,
     }
   } catch (error) {
     console.error("Error fetching students:", error)

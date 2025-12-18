@@ -1,32 +1,73 @@
-// Seed script for MongoDB
-// Run with: npx tsx scripts/seed.ts
+// Seed script for Cloudflare D1
+// This script generates SQL that can be run via wrangler d1 execute
+// Run with: bun scripts/seed.ts > seed.sql
+// Then: wrangler d1 execute DB --local --file=seed.sql
 
-import mongoose from "mongoose"
-import { School, Event, Student, Faculty } from "../server/database/models"
+import { nanoid } from "nanoid"
 import bcrypt from "bcryptjs"
+import schoolsData from "./schools.js"
+import eventsData from "./events.js"
 
-async function seed() {
-  await mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/chilamboli")
-  console.log("Connected to MongoDB")
+interface SchoolData {
+  name: string
+  schoolCode: string
+  location: string
+}
+
+interface EventData {
+  name: string
+  eventType: string
+  ageCategory: string
+}
+
+function capitalize(str: string): string {
+  return str
+    .split("-")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ")
+}
+
+async function generateSeedSQL() {
+  const sql: string[] = []
+
+  // Helper to escape SQL strings
+  const esc = (str: string | null | undefined) => {
+    if (str === null || str === undefined) return "NULL"
+    return `'${str.replace(/'/g, "''")}'`
+  }
+
+  const now = Date.now()
 
   // Clear existing data
-  await Promise.all([School.deleteMany({}), Event.deleteMany({}), Student.deleteMany({}), Faculty.deleteMany({})])
-  console.log("Cleared existing data")
+  sql.push("DELETE FROM registration_participants;")
+  sql.push("DELETE FROM registrations;")
+  sql.push("DELETE FROM students;")
+  sql.push("DELETE FROM faculty;")
+  sql.push("DELETE FROM events;")
+  sql.push("DELETE FROM schools;")
+  sql.push("")
 
-  // Seed schools (with school codes)
-  const schools = await School.insertMany([
-    { schoolCode: "AID001", name: "Model School for Intellectually Disabled - Trivandrum", location: "Trivandrum" },
-    { schoolCode: "AID002", name: "Special School Kochi", location: "Kochi" },
-    { schoolCode: "AID003", name: "AID Training Center Kozhikode", location: "Kozhikode" },
-    { schoolCode: "AID004", name: "Intellectual Disability Center Kannur", location: "Kannur" },
-    { schoolCode: "AID005", name: "Special Education School Thrissur", location: "Thrissur" },
-  ])
-  console.log(`Seeded ${schools.length} schools`)
+  // Seed schools from schools.js
+  const schools = (schoolsData as SchoolData[]).map((school) => ({
+    id: nanoid(),
+    schoolCode: school.schoolCode,
+    name: school.name,
+    location: school.location,
+  }))
 
-  // Seed sample faculty
+  sql.push("-- Schools")
+  for (const school of schools) {
+    sql.push(
+      `INSERT INTO schools (id, school_code, name, location, created_at) VALUES (${esc(school.id)}, ${esc(school.schoolCode)}, ${esc(school.name)}, ${esc(school.location)}, ${now});`
+    )
+  }
+  sql.push("")
+
+  // Seed faculty (using first two schools)
   const hashedPassword = await bcrypt.hash("password123", 10)
-  const faculties = await Faculty.insertMany([
+  const faculties = [
     {
+      id: nanoid(),
       schoolId: schools[0].id,
       facultyName: "Rajesh Kumar",
       mobileNumber: "9876543210",
@@ -35,6 +76,7 @@ async function seed() {
       isVerified: true,
     },
     {
+      id: nanoid(),
       schoolId: schools[1].id,
       facultyName: "Priya Menon",
       mobileNumber: "9876543211",
@@ -42,105 +84,38 @@ async function seed() {
       password: hashedPassword,
       isVerified: true,
     },
-  ])
-  console.log(`Seeded ${faculties.length} faculty members`)
+  ]
 
-  // Seed events according to Chilamboli specification
-  const events = []
+  sql.push("-- Faculty")
+  for (const f of faculties) {
+    sql.push(
+      `INSERT INTO faculty (id, school_id, faculty_name, mobile_number, school_email, password, is_verified, created_at) VALUES (${esc(f.id)}, ${esc(f.schoolId)}, ${esc(f.facultyName)}, ${esc(f.mobileNumber)}, ${esc(f.schoolEmail)}, ${esc(f.password)}, ${f.isVerified ? 1 : 0}, ${now});`
+    )
+  }
+  sql.push("")
 
-  // Sub Junior Events
-  events.push(
-    // Individual
-    { name: "Fancy Dress", eventType: "Individual", ageCategory: "Sub Junior" },
-    { name: "Coloring", eventType: "Individual", ageCategory: "Sub Junior" },
-    // Group
-    { name: "Cinematic Dance", eventType: "Group", ageCategory: "Sub Junior", maxTeamSize: 8 },
-    { name: "Unified Wheelchair Dance", eventType: "Group", ageCategory: "Sub Junior", maxTeamSize: 6 },
-  )
+  // Seed events from events.js
+  const events = (eventsData as EventData[]).map((event) => ({
+    id: nanoid(),
+    name: event.name,
+    eventType: capitalize(event.eventType), // "individual" -> "Individual"
+    ageCategory: capitalize(event.ageCategory), // "sub-junior" -> "Sub Junior"
+  }))
 
-  // Junior Events
-  events.push(
-    // Individual
-    { name: "Kavitha Parayanam", eventType: "Individual", ageCategory: "Junior" },
-    { name: "Bottle Art", eventType: "Individual", ageCategory: "Junior" },
-    {
-      name: "Folk Dance - Boys",
-      nameInMalayalam: "നാടോടി നൃത്തം - ആൺകുട്ടികൾ",
-      eventType: "Individual",
-      ageCategory: "Junior",
-      gender: "Boys",
-    },
-    {
-      name: "Folk Dance - Girls",
-      nameInMalayalam: "നാടോടി നൃത്തം - പെൺകുട്ടികൾ",
-      eventType: "Individual",
-      ageCategory: "Junior",
-      gender: "Girls",
-    },
-    // Group
-    { name: "Cinematic Dance", eventType: "Group", ageCategory: "Junior", maxTeamSize: 8 },
-    { name: "Unified Wheel Chair Dance", eventType: "Group", ageCategory: "Junior", maxTeamSize: 6 },
-    { name: "Fashion Show", eventType: "Group", ageCategory: "Junior", maxTeamSize: 10 },
-    {
-      name: "Katha Prasangam",
-      nameInMalayalam: "കഥാപ്രസംഗം",
-      eventType: "Group",
-      ageCategory: "Junior",
-      maxTeamSize: 5,
-    },
-    {
-      name: "Instrumental Music - Fusion",
-      nameInMalayalam: "വൃന്ദ വാദ്യം",
-      eventType: "Group",
-      ageCategory: "Junior",
-      maxTeamSize: 8,
-    },
-    {
-      name: "Folk Music",
-      nameInMalayalam: "നാടോടി പാട്ട്",
-      eventType: "Group",
-      ageCategory: "Junior",
-      maxTeamSize: 6,
-    },
-  )
-
-  // Senior Events
-  events.push(
-    // Individual
-    { name: "Vegetable Colouring", eventType: "Individual", ageCategory: "Senior" },
-    { name: "Kavitha Parayanam", eventType: "Individual", ageCategory: "Senior" },
-    { name: "Mono Act", eventType: "Individual", ageCategory: "Senior" },
-    { name: "Folk Dance - Boys", eventType: "Individual", ageCategory: "Senior", gender: "Boys" },
-    { name: "Folk Dance - Girls", eventType: "Individual", ageCategory: "Senior", gender: "Girls" },
-    // Group
-    { name: "Cinematic Dance", eventType: "Group", ageCategory: "Senior", maxTeamSize: 8 },
-    { name: "Unified Wheel Chair Dance", eventType: "Group", ageCategory: "Senior", maxTeamSize: 6 },
-    { name: "Fashion Show", eventType: "Group", ageCategory: "Senior", maxTeamSize: 10 },
-    { name: "Katha Prasangam", eventType: "Group", ageCategory: "Senior", maxTeamSize: 5 },
-    {
-      name: "Vrunda Vadhyam - Fusion",
-      nameInMalayalam: "വൃന്ദ വാദ്യം",
-      eventType: "Group",
-      ageCategory: "Senior",
-      maxTeamSize: 8,
-    },
-    { name: "Nadodi Pattu", nameInMalayalam: "നാടോടി പാട്ട്", eventType: "Group", ageCategory: "Senior", maxTeamSize: 6 },
-    { name: "MIME", eventType: "Group", ageCategory: "Senior", maxTeamSize: 6 },
-  )
-
-  // Combined Category Events (not counted in participation limit)
-  events.push(
-    { name: "BAND Melam", eventType: "Group", ageCategory: "Combined", maxTeamSize: 15 },
-    { name: "Chenda Melam", eventType: "Group", ageCategory: "Combined", maxTeamSize: 12 },
-    { name: "Shikkari Melam", eventType: "Group", ageCategory: "Combined", maxTeamSize: 10 },
-  )
-
-  const createdEvents = await Event.insertMany(events)
-  console.log(`Seeded ${createdEvents.length} events`)
+  sql.push("-- Events")
+  for (const e of events) {
+    sql.push(
+      `INSERT INTO events (id, name, name_in_malayalam, event_type, age_category, gender, max_team_size, created_at) VALUES (${esc(e.id)}, ${esc(e.name)}, NULL, ${esc(e.eventType)}, ${esc(e.ageCategory)}, NULL, NULL, ${now});`
+    )
+  }
+  sql.push("")
 
   // Seed sample students
-  const students = await Student.insertMany([
+  const students = [
     {
+      id: nanoid(),
+      studentId: `STU-${nanoid(10)}`.toUpperCase(),
+      chestNumber: `CH-${nanoid(8)}`.toUpperCase(),
       studentName: "Arjun Nair",
       dateOfBirth: "2015-03-15",
       ageCategory: "Sub Junior",
@@ -152,6 +127,9 @@ async function seed() {
       disabilityCertificateUrl: "/placeholder.pdf",
     },
     {
+      id: nanoid(),
+      studentId: `STU-${nanoid(10)}`.toUpperCase(),
+      chestNumber: `CH-${nanoid(8)}`.toUpperCase(),
       studentName: "Meera Krishna",
       dateOfBirth: "2014-08-20",
       ageCategory: "Sub Junior",
@@ -163,6 +141,9 @@ async function seed() {
       disabilityCertificateUrl: "/placeholder.pdf",
     },
     {
+      id: nanoid(),
+      studentId: `STU-${nanoid(10)}`.toUpperCase(),
+      chestNumber: `CH-${nanoid(8)}`.toUpperCase(),
       studentName: "Aditya Pillai",
       dateOfBirth: "2010-05-10",
       ageCategory: "Junior",
@@ -174,6 +155,9 @@ async function seed() {
       disabilityCertificateUrl: "/placeholder.pdf",
     },
     {
+      id: nanoid(),
+      studentId: `STU-${nanoid(10)}`.toUpperCase(),
+      chestNumber: `CH-${nanoid(8)}`.toUpperCase(),
       studentName: "Lakshmi Menon",
       dateOfBirth: "2008-12-05",
       ageCategory: "Junior",
@@ -185,6 +169,9 @@ async function seed() {
       disabilityCertificateUrl: "/placeholder.pdf",
     },
     {
+      id: nanoid(),
+      studentId: `STU-${nanoid(10)}`.toUpperCase(),
+      chestNumber: `CH-${nanoid(8)}`.toUpperCase(),
       studentName: "Ravi Kumar",
       dateOfBirth: "2003-07-22",
       ageCategory: "Senior",
@@ -195,11 +182,16 @@ async function seed() {
       photoUrl: "/placeholder-user.jpg",
       disabilityCertificateUrl: "/placeholder.pdf",
     },
-  ])
-  console.log(`Seeded ${students.length} students`)
+  ]
 
-  await mongoose.disconnect()
-  console.log("Seeding complete!")
+  sql.push("-- Students")
+  for (const s of students) {
+    sql.push(
+      `INSERT INTO students (id, student_id, chest_number, student_name, date_of_birth, age_category, class, roll_number, photo_url, disability_certificate_url, school_id, added_by_faculty_id, created_at, updated_at) VALUES (${esc(s.id)}, ${esc(s.studentId)}, ${esc(s.chestNumber)}, ${esc(s.studentName)}, ${esc(s.dateOfBirth)}, ${esc(s.ageCategory)}, ${esc(s.class)}, ${esc(s.rollNumber)}, ${esc(s.photoUrl)}, ${esc(s.disabilityCertificateUrl)}, ${esc(s.schoolId)}, ${esc(s.addedByFacultyId)}, ${now}, ${now});`
+    )
+  }
+
+  console.log(sql.join("\n"))
 }
 
-seed().catch(console.error)
+generateSeedSQL().catch(console.error)

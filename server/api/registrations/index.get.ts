@@ -1,35 +1,63 @@
-import { connectDB } from "../../utils/db"
-import { Registration } from "../../database/models"
+import { useDB } from "../../utils/db"
+import { registrations, events, schools, registrationParticipants } from "../../database/schema"
+import { eq, and } from "drizzle-orm"
 
 export default defineEventHandler(async (event) => {
-  await connectDB(event)
+  const db = useDB(event)
   const query = getQuery(event)
 
   const eventId = query.eventId as string | null
   const schoolId = query.schoolId as string | null
 
   try {
-    const filter: any = {}
-    if (eventId) filter.eventId = eventId
-    if (schoolId) filter.schoolId = schoolId
+    let registrationList
 
-    const registrations = await Registration.find(filter).lean()
+    if (eventId && schoolId) {
+      registrationList = await db
+        .select()
+        .from(registrations)
+        .where(and(eq(registrations.eventId, eventId), eq(registrations.schoolId, schoolId)))
+    } else if (eventId) {
+      registrationList = await db
+        .select()
+        .from(registrations)
+        .where(eq(registrations.eventId, eventId))
+    } else if (schoolId) {
+      registrationList = await db
+        .select()
+        .from(registrations)
+        .where(eq(registrations.schoolId, schoolId))
+    } else {
+      registrationList = await db.select().from(registrations)
+    }
 
     // Fetch related data
-    const Event = (await import("../../database/models")).Event
-    const School = (await import("../../database/models")).School
-
     const results = await Promise.all(
-      registrations.map(async (reg: any) => {
-        const event = await Event.findOne({ id: reg.eventId }).lean()
-        const school = await School.findOne({ id: reg.schoolId }).lean()
+      registrationList.map(async (reg) => {
+        const [eventData] = await db
+          .select()
+          .from(events)
+          .where(eq(events.id, reg.eventId))
+          .limit(1)
+
+        const [school] = await db
+          .select()
+          .from(schools)
+          .where(eq(schools.id, reg.schoolId))
+          .limit(1)
+
+        const participants = await db
+          .select()
+          .from(registrationParticipants)
+          .where(eq(registrationParticipants.registrationId, reg.id))
+
         return {
           id: reg.id,
           teamName: reg.teamName,
           createdAt: reg.createdAt,
-          event: event ? { id: event.id, name: event.name, eventType: event.eventType } : null,
+          event: eventData ? { id: eventData.id, name: eventData.name, eventType: eventData.eventType } : null,
           school: school ? { id: school.id, name: school.name } : null,
-          participantCount: reg.participantIds?.length || 0,
+          participantCount: participants.length,
         }
       })
     )

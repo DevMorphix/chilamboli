@@ -1,9 +1,10 @@
-import { connectDB } from "../../utils/db"
-import { Faculty, School } from "../../database/models"
+import { useDB } from "../../utils/db"
+import { faculty, schools } from "../../database/schema"
+import { eq } from "drizzle-orm"
 import bcrypt from "bcryptjs"
 
 export default defineEventHandler(async (event) => {
-  await connectDB(event)
+  const db = useDB(event)
   const body = await readBody(event)
 
   const { schoolEmail, password } = body
@@ -16,23 +17,27 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const faculty = await Faculty.findOne({ schoolEmail })
+    const [facultyMember] = await db
+      .select()
+      .from(faculty)
+      .where(eq(faculty.schoolEmail, schoolEmail))
+      .limit(1)
 
-    if (!faculty) {
+    if (!facultyMember) {
       throw createError({
         statusCode: 401,
         message: "Invalid email or password",
       })
     }
 
-    if (!faculty.isVerified) {
+    if (!facultyMember.isVerified) {
       throw createError({
         statusCode: 403,
         message: "Please verify your email before logging in",
       })
     }
 
-    const isPasswordValid = await bcrypt.compare(password, faculty.password)
+    const isPasswordValid = await bcrypt.compare(password, facultyMember.password)
 
     if (!isPasswordValid) {
       throw createError({
@@ -42,23 +47,27 @@ export default defineEventHandler(async (event) => {
     }
 
     // Get school details
-    const school = await School.findOne({ id: faculty.schoolId })
+    const [school] = await db
+      .select()
+      .from(schools)
+      .where(eq(schools.id, facultyMember.schoolId))
+      .limit(1)
 
     return {
       success: true,
       message: "Login successful",
       faculty: {
-        id: faculty.id,
-        facultyName: faculty.facultyName,
-        schoolEmail: faculty.schoolEmail,
-        mobileNumber: faculty.mobileNumber,
-        schoolId: faculty.schoolId,
+        id: facultyMember.id,
+        facultyName: facultyMember.facultyName,
+        schoolEmail: facultyMember.schoolEmail,
+        mobileNumber: facultyMember.mobileNumber,
+        schoolId: facultyMember.schoolId,
         schoolName: school?.name || "",
         schoolCode: school?.schoolCode || "",
       },
     }
   } catch (error: any) {
-    console.error("Error logging in faculty:", error)
+    console.error("Error logging in:", error)
 
     if (error.statusCode) {
       throw error

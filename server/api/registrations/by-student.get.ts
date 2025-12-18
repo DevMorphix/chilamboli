@@ -1,8 +1,9 @@
-import { connectDB } from "../../utils/db"
-import { Registration, Event, Student } from "../../database/models"
+import { useDB } from "../../utils/db"
+import { registrations, events, students, registrationParticipants } from "../../database/schema"
+import { eq, desc, inArray } from "drizzle-orm"
 
 export default defineEventHandler(async (event) => {
-  await connectDB(event)
+  const db = useDB(event)
   const query = getQuery(event)
   const { studentId } = query
 
@@ -14,24 +15,58 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const registrations = await Registration.find({
-      participantIds: studentId as string,
-    })
-      .sort({ createdAt: -1 })
-      .lean()
+    // Find registrations that include this student
+    const participantRecords = await db
+      .select()
+      .from(registrationParticipants)
+      .where(eq(registrationParticipants.studentId, studentId as string))
 
-    // Populate event details
+    const registrationIds = participantRecords.map((p) => p.registrationId)
+
+    if (registrationIds.length === 0) {
+      return {
+        success: true,
+        registrations: [],
+      }
+    }
+
+    const registrationList = await db
+      .select()
+      .from(registrations)
+      .where(inArray(registrations.id, registrationIds))
+      .orderBy(desc(registrations.createdAt))
+
+    // Populate event and participant details
     const registrationsWithDetails = await Promise.all(
-      registrations.map(async (reg) => {
-        const eventData = await Event.findOne({ id: reg.eventId }).lean()
-        const participants = await Student.find({ id: { $in: reg.participantIds } }).lean()
+      registrationList.map(async (reg) => {
+        const [eventData] = await db
+          .select()
+          .from(events)
+          .where(eq(events.id, reg.eventId))
+          .limit(1)
+
+        // Get all participants for this registration
+        const allParticipantRecords = await db
+          .select()
+          .from(registrationParticipants)
+          .where(eq(registrationParticipants.registrationId, reg.id))
+
+        const participantIds = allParticipantRecords.map((p) => p.studentId)
+
+        let participants: (typeof students.$inferSelect)[] = []
+        if (participantIds.length > 0) {
+          participants = await db
+            .select()
+            .from(students)
+            .where(inArray(students.id, participantIds))
+        }
 
         return {
           ...reg,
           event: eventData,
           participants,
         }
-      }),
+      })
     )
 
     return {

@@ -24,3 +24,15 @@ bun-debug.log*
 
 # cloudflare
 .wrangler
+.dev.vars
+
+# generated files
+seed.sql
+
+# lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# drizzle
+drizzle

@@ -1,12 +1,12 @@
-import { connectDB } from "../utils/db"
-import { School } from "../database/models"
+import { useDB } from "../utils/db"
+import { schools } from "../database/schema"
 
 export default defineEventHandler(async (event) => {
-  await connectDB(event)
+  const db = useDB(event)
 
   try {
-    const schools = await School.find().lean()
-    return schools
+    const allSchools = await db.select().from(schools)
+    return allSchools
   } catch (error) {
     console.error("Error fetching schools:", error)
     throw createError({

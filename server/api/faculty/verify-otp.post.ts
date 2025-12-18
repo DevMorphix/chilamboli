@@ -1,9 +1,10 @@
-import { connectDB } from "../../utils/db"
-import { Faculty } from "../../database/models"
+import { useDB } from "../../utils/db"
+import { faculty } from "../../database/schema"
 import { verifyOtp, deleteOtp } from "../../utils/kv"
+import { eq } from "drizzle-orm"
 
 export default defineEventHandler(async (event) => {
-  await connectDB(event)
+  const db = useDB(event)
   const body = await readBody(event)
 
   const { facultyId, otp } = body
@@ -16,16 +17,20 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const faculty = await Faculty.findOne({ id: facultyId })
+    const [facultyMember] = await db
+      .select()
+      .from(faculty)
+      .where(eq(faculty.id, facultyId))
+      .limit(1)
 
-    if (!faculty) {
+    if (!facultyMember) {
       throw createError({
         statusCode: 404,
         message: "Faculty not found",
       })
     }
 
-    if (faculty.isVerified) {
+    if (facultyMember.isVerified) {
       throw createError({
         statusCode: 400,
         message: "Faculty already verified",
@@ -43,8 +48,11 @@ export default defineEventHandler(async (event) => {
     }
 
     // Verify faculty and delete OTP from KV Store
-    faculty.isVerified = true
-    await faculty.save()
+    await db
+      .update(faculty)
+      .set({ isVerified: true })
+      .where(eq(faculty.id, facultyId))
+
     await deleteOtp(facultyId)
 
     return {

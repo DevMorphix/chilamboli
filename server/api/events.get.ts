@@ -1,12 +1,12 @@
-import { connectDB } from "../utils/db"
-import { Event } from "../database/models"
+import { useDB } from "../utils/db"
+import { events } from "../database/schema"
 
 export default defineEventHandler(async (event) => {
-  await connectDB(event)
+  const db = useDB(event)
 
   try {
-    const events = await Event.find().lean()
-    return events
+    const allEvents = await db.select().from(events)
+    return allEvents
   } catch (error) {
     console.error("Error fetching events:", error)
     throw createError({

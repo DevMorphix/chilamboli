@@ -1,9 +1,10 @@
-import { connectDB } from "../../utils/db"
-import { Faculty } from "../../database/models"
+import { useDB } from "../../utils/db"
+import { faculty } from "../../database/schema"
 import { storeOtp, generateOtp } from "../../utils/kv"
+import { eq } from "drizzle-orm"
 
 export default defineEventHandler(async (event) => {
-  await connectDB(event)
+  const db = useDB(event)
   const body = await readBody(event)
 
   const { facultyId } = body
@@ -16,16 +17,20 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const faculty = await Faculty.findOne({ id: facultyId })
+    const [facultyMember] = await db
+      .select()
+      .from(faculty)
+      .where(eq(faculty.id, facultyId))
+      .limit(1)
 
-    if (!faculty) {
+    if (!facultyMember) {
       throw createError({
         statusCode: 404,
         message: "Faculty not found",
       })
     }
 
-    if (faculty.isVerified) {
+    if (facultyMember.isVerified) {
       throw createError({
         statusCode: 400,
         message: "Faculty already verified",
@@ -37,7 +42,7 @@ export default defineEventHandler(async (event) => {
     await storeOtp(facultyId, otp)
 
     // TODO: In production, send OTP via email
-    console.log(`New OTP for ${faculty.schoolEmail}: ${otp}`)
+    console.log(`New OTP for ${facultyMember.schoolEmail}: ${otp}`)
 
     return {
       success: true,

@@ -1,28 +1,56 @@
-import { connectDB } from "../../utils/db"
-import { Event } from "../../database/models"
+import { useDB } from "../../utils/db"
+import { events } from "../../database/schema"
+import { eq, or, asc } from "drizzle-orm"
 
 export default defineEventHandler(async (event) => {
-  await connectDB(event)
+  const db = useDB(event)
   const query = getQuery(event)
   const { ageCategory, eventType } = query
 
   try {
-    const filter: any = {}
+    let result
 
-    if (ageCategory) {
-      // Include combined category events for all age categories
-      filter.$or = [{ ageCategory: ageCategory as string }, { ageCategory: "Combined" }]
+    if (ageCategory && eventType) {
+      result = await db
+        .select()
+        .from(events)
+        .where(
+          or(
+            eq(events.ageCategory, ageCategory as string),
+            eq(events.ageCategory, "Combined")
+          )
+        )
+        .orderBy(asc(events.ageCategory), asc(events.eventType), asc(events.name))
+      
+      // Filter by eventType in memory since SQLite doesn't support complex AND/OR easily
+      result = result.filter(e => e.eventType === eventType)
+    } else if (ageCategory) {
+      result = await db
+        .select()
+        .from(events)
+        .where(
+          or(
+            eq(events.ageCategory, ageCategory as string),
+            eq(events.ageCategory, "Combined")
+          )
+        )
+        .orderBy(asc(events.ageCategory), asc(events.eventType), asc(events.name))
+    } else if (eventType) {
+      result = await db
+        .select()
+        .from(events)
+        .where(eq(events.eventType, eventType as string))
+        .orderBy(asc(events.ageCategory), asc(events.eventType), asc(events.name))
+    } else {
+      result = await db
+        .select()
+        .from(events)
+        .orderBy(asc(events.ageCategory), asc(events.eventType), asc(events.name))
     }
-
-    if (eventType) {
-      filter.eventType = eventType as string
-    }
-
-    const events = await Event.find(filter).sort({ ageCategory: 1, eventType: 1, name: 1 }).lean()
 
     return {
       success: true,
-      events,
+      events: result,
     }
   } catch (error) {
     console.error("Error fetching events:", error)

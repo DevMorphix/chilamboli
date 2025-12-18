@@ -1,5 +1,6 @@
-import { connectDB } from "../../utils/db"
-import { Student } from "../../database/models"
+import { useDB } from "../../utils/db"
+import { students } from "../../database/schema"
+import { eq } from "drizzle-orm"
 
 function calculateAgeCategory(dateOfBirth: string): "Sub Junior" | "Junior" | "Senior" {
   const dob = new Date(dateOfBirth)
@@ -18,7 +19,7 @@ function calculateAgeCategory(dateOfBirth: string): "Sub Junior" | "Junior" | "S
 }
 
 export default defineEventHandler(async (event) => {
-  await connectDB(event)
+  const db = useDB(event)
   const body = await readBody(event)
 
   const {
@@ -39,32 +40,44 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const student = await Student.findOne({ id: studentId })
+    // Check if student exists
+    const [existingStudent] = await db
+      .select()
+      .from(students)
+      .where(eq(students.id, studentId))
+      .limit(1)
 
-    if (!student) {
+    if (!existingStudent) {
       throw createError({
         statusCode: 404,
         message: "Student not found",
       })
     }
 
-    // Update allowed fields
-    if (studentName) student.studentName = studentName
-    if (dateOfBirth) {
-      student.dateOfBirth = dateOfBirth
-      // Recalculate age category if DOB changes
-      student.ageCategory = calculateAgeCategory(dateOfBirth)
+    // Build update object
+    const updateData: Partial<typeof students.$inferInsert> = {
+      updatedAt: new Date(),
     }
-    if (studentClass) student.class = studentClass
-    if (rollNumber) student.rollNumber = rollNumber
-    if (photoUrl) student.photoUrl = photoUrl
-    if (disabilityCertificateUrl) student.disabilityCertificateUrl = disabilityCertificateUrl
 
-    await student.save()
+    if (studentName) updateData.studentName = studentName
+    if (dateOfBirth) {
+      updateData.dateOfBirth = dateOfBirth
+      updateData.ageCategory = calculateAgeCategory(dateOfBirth)
+    }
+    if (studentClass) updateData.class = studentClass
+    if (rollNumber) updateData.rollNumber = rollNumber
+    if (photoUrl) updateData.photoUrl = photoUrl
+    if (disabilityCertificateUrl) updateData.disabilityCertificateUrl = disabilityCertificateUrl
+
+    const [updatedStudent] = await db
+      .update(students)
+      .set(updateData)
+      .where(eq(students.id, studentId))
+      .returning()
 
     return {
       success: true,
-      student: student.toObject(),
+      student: updatedStudent,
       message: "Student updated successfully",
     }
   } catch (error: any) {
