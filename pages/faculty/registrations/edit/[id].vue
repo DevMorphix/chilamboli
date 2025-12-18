@@ -80,7 +80,7 @@
                   v-if="student.photoUrl"
                   :src="toFullUrl(student.photoUrl)"
                   :alt="student.studentName"
-                  class="w-10 h-10 rounded-full object-cover"
+                  class="w-10 h-10 rounded-full object-cover border border-gray-200 p-0.5"
                 />
                 <div
                   v-else
