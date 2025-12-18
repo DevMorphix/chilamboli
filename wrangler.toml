@@ -1,30 +1,18 @@
-# Cloudflare Pages configuration
 name = "chilamboli"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".nuxt/dist"
 
-# D1 Database binding (create via: wrangler d1 create chilamboli-db)
-# Uncomment and add your D1 database ID after creating it
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "chilamboli-db"
-# database_id = "your-d1-database-id"
+[[d1_databases]]
+binding = "DB"
+database_name = "chilamboli-db"
+database_id = "bc0afddf-c8be-4842-9757-b4e1ec786526"
+migrations_dir = "drizzle"
 
-# KV Namespace binding (create via: wrangler kv namespace create KV)
-# Uncomment and add your KV namespace ID after creating it
-# [[kv_namespaces]]
-# binding = "KV"
-# id = "your-kv-namespace-id"
+[[kv_namespaces]]
+binding = "KV"
+id = "b0c05dd4200b4984b0741bfdcf1864e7"
 
-# R2 Bucket binding (optional - if you want to use R2 bindings instead of S3 API)
-# [[r2_buckets]]
-# binding = "R2_BUCKET"
-# bucket_name = "your-bucket-name"
-
-# Environment variables (set these in Cloudflare Dashboard or via wrangler secret)
-# R2_ENDPOINT - Your R2 endpoint
-# R2_ACCESS_KEY_ID - Your R2 access key
-# R2_SECRET_ACCESS_KEY - Your R2 secret key
-# R2_BUCKET_NAME - Your R2 bucket name
-# R2_PUBLIC_URL - Your R2 public URL
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "chilamboli"

@@ -1,4 +1,4 @@
-[
+export default [
   {
     "name": "Assisi Special School for Mentally Challenged, Panavally",
     "schoolCode": "AID01_001",

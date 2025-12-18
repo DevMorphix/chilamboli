@@ -6,13 +6,10 @@
     "dev": "nuxt dev --host",
     "build": "nuxt build",
     "postinstall": "nuxt prepare",
-    "seed": "bun scripts/seed.ts > seed.sql",
     "db:generate": "drizzle-kit generate",
-    "db:migrate:local": "wrangler d1 execute DB --local --file=./drizzle/0000_white_norrin_radd.sql",
-    "db:seed:local": "bun run seed && wrangler d1 execute DB --local --file=seed.sql",
-    "db:migrate:prod": "wrangler d1 execute DB --remote --file=./drizzle/0000_white_norrin_radd.sql",
-    "db:seed:prod": "bun run seed && wrangler d1 execute DB --remote --file=seed.sql",
-    "deploy": "nuxt build && wrangler pages deploy"
+    "db:migrate": "wrangler d1 migrations apply DB --remote",
+    "db:seed": "bun scripts/seed.ts > seed.sql && wrangler d1 execute DB --remote --file=seed.sql",
+    "deploy": "nuxt build && wrangler pages deploy dist"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.953.0",
