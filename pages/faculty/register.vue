@@ -9,17 +9,59 @@
       <div class="bg-white rounded-lg shadow-lg p-8">
         <form @submit.prevent="handleRegister" class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">School</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Location</label>
             <select
-              v-model="formData.schoolId"
-              required
+              v-model="selectedLocation"
+              @change="handleLocationChange"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">Select your school</option>
-              <option v-for="school in schools" :key="school.id" :value="school.id">
-                {{ school.name }}
+              <option value="">Select location</option>
+              <option v-for="location in locations" :key="location" :value="location">
+                {{ location }}
               </option>
             </select>
+          </div>
+
+          <div class="relative" id="school-select-container">
+            <label class="block text-sm font-medium text-gray-700 mb-1">School</label>
+            <div v-if="!selectedLocation" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500">
+              Please select a location first
+            </div>
+            <div v-else class="relative">
+              <input
+                v-model="schoolSearchQuery"
+                type="text"
+                :placeholder="loadingSchools ? 'Loading...' : 'Search school...'"
+                :disabled="loadingSchools"
+                @focus="showSchoolDropdown = true"
+                class="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+              />
+              <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              
+              <div
+                v-if="showSchoolDropdown && filteredSchools.length > 0"
+                class="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto"
+              >
+                <div
+                  v-for="school in filteredSchools"
+                  :key="school.id"
+                  @click="selectSchool(school)"
+                  class="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                >
+                  {{ school.name }}
+                </div>
+              </div>
+              
+              <input
+                v-model="formData.schoolId"
+                type="hidden"
+                required
+              />
+            </div>
           </div>
 
           <div>
@@ -109,8 +151,30 @@
 const router = useRouter()
 
 const schools = ref([])
+const selectedLocation = ref('')
+const schoolSearchQuery = ref('')
+const showSchoolDropdown = ref(false)
+const selectedSchoolName = ref('')
 const loading = ref(false)
+const loadingSchools = ref(false)
 const error = ref('')
+
+const locations = [
+  'Alappuzha',
+  'Ernakulam',
+  'Idukki',
+  'Kannur',
+  'Kasaragod',
+  'Kollam',
+  'Kottayam',
+  'Kozhikode',
+  'Malappuram',
+  'Palakkad',
+  'Pathanamthitta',
+  'Thrissur',
+  'Thiruvananthapuram',
+  'Wayanad'
+]
 
 const formData = ref({
   schoolId: '',
@@ -121,15 +185,61 @@ const formData = ref({
   confirmPassword: '',
 })
 
-onMounted(async () => {
+const filteredSchools = computed(() => {
+  if (!schoolSearchQuery.value) {
+    return schools.value.slice(0, 10)
+  }
+  const query = schoolSearchQuery.value.toLowerCase()
+  return schools.value.filter((school: any) =>
+    school.name.toLowerCase().includes(query)
+  )
+})
+
+const selectSchool = (school: any) => {
+  formData.value.schoolId = school.id
+  selectedSchoolName.value = school.name
+  schoolSearchQuery.value = school.name
+  showSchoolDropdown.value = false
+}
+
+const handleLocationChange = async () => {
+  formData.value.schoolId = ''
+  schools.value = []
+  schoolSearchQuery.value = ''
+  selectedSchoolName.value = ''
+  showSchoolDropdown.value = false
+  
+  if (!selectedLocation.value) {
+    return
+  }
+  
+  loadingSchools.value = true
   try {
-    const response = await $fetch('/api/schools')
-    // Handle paginated response
+    const response = await $fetch('/api/schools', {
+      params: {
+        location: selectedLocation.value,
+        limit: 100,
+      },
+    })
     schools.value = response.data || response || []
   } catch (err) {
     console.error('Failed to fetch schools:', err)
+    error.value = 'Failed to load schools. Please try again.'
+  } finally {
+    loadingSchools.value = false
   }
-})
+}
+
+// Close dropdown when clicking outside
+if (process.client) {
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement
+    const container = document.getElementById('school-select-container')
+    if (container && !container.contains(target)) {
+      showSchoolDropdown.value = false
+    }
+  })
+}
 
 const handleRegister = async () => {
   error.value = ''

@@ -28,18 +28,17 @@ export default defineEventHandler(async (event) => {
   const {
     studentName,
     dateOfBirth,
-    class: studentClass,
-    rollNumber,
+    gender,
     photoUrl,
     disabilityCertificateUrl,
     schoolId,
     addedByFacultyId,
   } = body
 
-  if (!studentName || !dateOfBirth || !studentClass || !rollNumber || !schoolId || !addedByFacultyId) {
+  if (!studentName || !dateOfBirth || !gender || !schoolId || !addedByFacultyId) {
     throw createError({
       statusCode: 400,
-      message: "Missing required fields: studentName, dateOfBirth, class, rollNumber, schoolId, addedByFacultyId",
+      message: "Missing required fields: studentName, dateOfBirth, gender, schoolId, addedByFacultyId",
     })
   }
 
@@ -61,19 +60,16 @@ export default defineEventHandler(async (event) => {
     const ageCategory = calculateAgeCategory(dateOfBirth)
     const id = body.id || nanoid()
     const studentId = `STU-${nanoid(10)}`.toUpperCase()
-    const chestNumber = `CH-${nanoid(8)}`.toUpperCase()
 
     const [newStudent] = await db
       .insert(students)
       .values({
         id,
         studentId,
-        chestNumber,
         studentName,
         dateOfBirth,
         ageCategory,
-        class: studentClass,
-        rollNumber,
+        gender,
         photoUrl,
         disabilityCertificateUrl,
         schoolId,

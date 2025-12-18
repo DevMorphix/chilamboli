@@ -24,7 +24,7 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Filters -->
       <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Search</label>
             <input
@@ -45,15 +45,6 @@
               <option value="Junior">Junior</option>
               <option value="Senior">Senior</option>
             </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Class</label>
-            <input
-              v-model="filterClass"
-              type="text"
-              placeholder="Filter by class..."
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
           </div>
         </div>
       </div>
@@ -108,22 +99,11 @@
                 </th>
                 <th 
                   class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  @click="handleSort('chestNumber')"
+                  @click="handleSort('gender')"
                 >
                   <div class="flex items-center gap-1">
-                    Chest No
-                    <span v-if="sortBy === 'chestNumber'" class="text-blue-600">
-                      {{ sortOrder === 'asc' ? '↑' : '↓' }}
-                    </span>
-                  </div>
-                </th>
-                <th 
-                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  @click="handleSort('class')"
-                >
-                  <div class="flex items-center gap-1">
-                    Class
-                    <span v-if="sortBy === 'class'" class="text-blue-600">
+                    Gender
+                    <span v-if="sortBy === 'gender'" class="text-blue-600">
                       {{ sortOrder === 'asc' ? '↑' : '↓' }}
                     </span>
                   </div>
@@ -171,11 +151,8 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {{ student.studentId }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {{ student.chestNumber }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {{ student.class }}
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
+                  {{ student.gender }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <span
@@ -244,7 +221,6 @@ const metadata = ref<any>(null)
 const loading = ref(true)
 const searchQuery = ref('')
 const filterCategory = ref('')
-const filterClass = ref('')
 const sortBy = ref<string>('createdAt')
 const sortOrder = ref<'asc' | 'desc'>('desc')
 const currentPage = ref(1)
@@ -269,10 +245,6 @@ const fetchStudents = async () => {
 
     if (filterCategory.value) {
       params.ageCategory = filterCategory.value
-    }
-
-    if (filterClass.value) {
-      params.class = filterClass.value
     }
 
     if (sortBy.value) {
@@ -307,7 +279,7 @@ const changePage = (page: number) => {
 }
 
 // Debounce filter changes
-watch([filterCategory, filterClass], () => {
+watch([filterCategory], () => {
   if (searchTimeout) {
     clearTimeout(searchTimeout)
   }

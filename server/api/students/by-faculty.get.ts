@@ -25,9 +25,6 @@ export default defineEventHandler(async (event) => {
       if (filters.ageCategory) {
         filterConditions.push(eq(students.ageCategory, filters.ageCategory as "Sub Junior" | "Junior" | "Senior"))
       }
-      if (filters.class) {
-        filterConditions.push(like(students.class, `%${filters.class}%`))
-      }
       if (filterConditions.length > 1) {
         whereClause = and(...filterConditions)
       }
@@ -38,8 +35,7 @@ export default defineEventHandler(async (event) => {
       const searchPattern = `%${search}%`
       const searchClause = or(
         like(students.studentName, searchPattern),
-        like(students.studentId, searchPattern),
-        like(students.chestNumber, searchPattern)
+        like(students.studentId, searchPattern)
       )
       whereClause = whereClause ? and(whereClause, searchClause) : searchClause
     }

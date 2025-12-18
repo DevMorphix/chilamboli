@@ -1,7 +1,7 @@
 import { useDB } from "../utils/db"
 import { schools } from "../database/schema"
 import { getPaginationParams, createPaginatedResponse } from "../utils/pagination"
-import { count, like, or, asc, desc } from "drizzle-orm"
+import { count, like, or, asc, desc, eq, and } from "drizzle-orm"
 
 export default defineEventHandler(async (event) => {
   const db = useDB(event)
@@ -10,12 +10,24 @@ export default defineEventHandler(async (event) => {
 
   try {
     let whereClause: any = undefined
+    const conditions: any[] = []
+    
     if (search) {
       const searchPattern = `%${search}%`
-      whereClause = or(
-        like(schools.name, searchPattern),
-        like(schools.schoolCode, searchPattern)
+      conditions.push(
+        or(
+          like(schools.name, searchPattern),
+          like(schools.schoolCode, searchPattern)
+        )
       )
+    }
+    
+    if (filters?.location) {
+      conditions.push(eq(schools.location, filters.location))
+    }
+    
+    if (conditions.length > 0) {
+      whereClause = conditions.length === 1 ? conditions[0] : and(...conditions)
     }
 
     const [totalResult] = await db

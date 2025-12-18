@@ -136,7 +136,7 @@
                 <div>
                   <p class="font-medium text-gray-900">{{ student.studentName }}</p>
                   <p class="text-sm text-gray-500">
-                    {{ student.class }} • {{ student.ageCategory }} • {{ student.chestNumber }}
+                    {{ student.ageCategory }} • {{ student.gender ? student.gender.charAt(0).toUpperCase() + student.gender.slice(1) : '' }}
                   </p>
                 </div>
               </div>

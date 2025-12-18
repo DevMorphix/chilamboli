@@ -44,32 +44,21 @@
             </p>
           </div>
 
-          <!-- Class and Roll Number -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Class <span class="text-red-500">*</span>
-              </label>
-              <input
-                v-model="formData.class"
-                type="text"
-                required
-                placeholder="e.g., 10-A"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Roll Number <span class="text-red-500">*</span>
-              </label>
-              <input
-                v-model="formData.rollNumber"
-                type="text"
-                required
-                placeholder="Enter roll number"
-                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+          <!-- Gender -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Gender <span class="text-red-500">*</span>
+            </label>
+            <select
+              v-model="formData.gender"
+              required
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="others">Others</option>
+            </select>
           </div>
 
           <!-- Photo Upload -->
@@ -195,8 +184,7 @@ const error = ref('')
 const formData = ref({
   studentName: '',
   dateOfBirth: '',
-  class: '',
-  rollNumber: '',
+  gender: '',
 })
 
 const photoFile = ref<File | null>(null)
@@ -293,8 +281,7 @@ const handleSubmit = async () => {
       body: {
         studentName: formData.value.studentName,
         dateOfBirth: formData.value.dateOfBirth,
-        class: formData.value.class,
-        rollNumber: formData.value.rollNumber,
+        gender: formData.value.gender,
         photoUrl,
         disabilityCertificateUrl: certificateUrl,
         schoolId: faculty.value.schoolId,

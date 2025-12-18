@@ -27,7 +27,8 @@ bun-debug.log*
 .dev.vars
 
 # generated files
-seed.sql
+scripts/seed.sql
+scripts/reset.sql
 
 # lock files
 package-lock.json

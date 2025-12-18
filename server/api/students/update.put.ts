@@ -26,8 +26,7 @@ export default defineEventHandler(async (event) => {
     studentId,
     studentName,
     dateOfBirth,
-    class: studentClass,
-    rollNumber,
+    gender,
     photoUrl,
     disabilityCertificateUrl,
   } = body
@@ -55,17 +54,14 @@ export default defineEventHandler(async (event) => {
     }
 
     // Build update object
-    const updateData: Partial<typeof students.$inferInsert> = {
-      updatedAt: new Date(),
-    }
+    const updateData: Partial<typeof students.$inferInsert> = {}
 
     if (studentName) updateData.studentName = studentName
     if (dateOfBirth) {
       updateData.dateOfBirth = dateOfBirth
       updateData.ageCategory = calculateAgeCategory(dateOfBirth)
     }
-    if (studentClass) updateData.class = studentClass
-    if (rollNumber) updateData.rollNumber = rollNumber
+    if (gender) updateData.gender = gender
     if (photoUrl) updateData.photoUrl = photoUrl
     if (disabilityCertificateUrl) updateData.disabilityCertificateUrl = disabilityCertificateUrl
 

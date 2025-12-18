@@ -18,8 +18,7 @@ export default defineEventHandler(async (event) => {
     const searchPattern = `%${searchTerm}%`
     const searchWhere = or(
       like(students.studentName, searchPattern),
-      like(students.studentId, searchPattern),
-      like(students.chestNumber, searchPattern)
+      like(students.studentId, searchPattern)
     )
     
     let whereClause: any = searchWhere

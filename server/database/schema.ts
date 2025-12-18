@@ -26,18 +26,20 @@ export const faculty = sqliteTable("faculty", {
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date())
+    .$onUpdateFn(() => new Date()),
 })
 
 // Students table
 export const students = sqliteTable("students", {
   id: text("id").primaryKey(),
   studentId: text("student_id").notNull().unique(),
-  chestNumber: text("chest_number").notNull().unique(),
   studentName: text("student_name").notNull(),
   dateOfBirth: text("date_of_birth").notNull(),
   ageCategory: text("age_category", { enum: ["Sub Junior", "Junior", "Senior"] }).notNull(),
-  class: text("class").notNull(),
-  rollNumber: text("roll_number").notNull(),
+  gender: text("gender", { enum: ["male", "female", "others"] }).notNull(),
   photoUrl: text("photo_url"),
   disabilityCertificateUrl: text("disability_certificate_url"),
   schoolId: text("school_id")
@@ -51,14 +53,14 @@ export const students = sqliteTable("students", {
     .$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
-    .$defaultFn(() => new Date()),
+    .$defaultFn(() => new Date())
+    .$onUpdateFn(() => new Date()),
 })
 
 // Events table
 export const events = sqliteTable("events", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
-  nameInMalayalam: text("name_in_malayalam"),
   description: text("description"),
   eventType: text("event_type", { enum: ["Individual", "Group", "Combined"] }).notNull(),
   ageCategory: text("age_category", { enum: ["Sub Junior", "Junior", "Senior", "Combined"] }).notNull(),
@@ -85,6 +87,10 @@ export const registrations = sqliteTable("registrations", {
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date())
+    .$onUpdateFn(() => new Date()),
 })
 
 // Registration participants (many-to-many relationship)
@@ -96,6 +102,13 @@ export const registrationParticipants = sqliteTable("registration_participants",
   studentId: text("student_id")
     .notNull()
     .references(() => students.id),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date())
+    .$onUpdateFn(() => new Date()),
 })
 
 // Relations

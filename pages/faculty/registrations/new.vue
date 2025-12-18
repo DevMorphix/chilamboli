@@ -119,7 +119,7 @@
                 <div class="flex-1">
                   <p class="text-sm font-medium text-gray-900">{{ student.studentName }}</p>
                   <p class="text-xs text-gray-500">
-                    {{ student.class }} • {{ student.ageCategory }} • {{ student.chestNumber }}
+                    {{ student.ageCategory }} • {{ student.gender ? student.gender.charAt(0).toUpperCase() + student.gender.slice(1) : '' }}
                   </p>
                 </div>
                 <div v-if="getStudentRegistrationStatus(student.id)" class="text-xs text-gray-500">
@@ -208,8 +208,7 @@ const filteredStudents = computed(() => {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter((s) =>
       s.studentName?.toLowerCase().includes(query) ||
-      s.studentId?.toLowerCase().includes(query) ||
-      s.chestNumber?.toLowerCase().includes(query)
+      s.studentId?.toLowerCase().includes(query)
     )
   }
 

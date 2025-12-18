@@ -71,7 +71,7 @@ export default [
     "ageCategory": "junior"
   },
   {
-    "name": "Instrumental Music – Fusion (വൃന്ദ വൊദ്യം)",
+    "name": "Instrumental Music - Fusion (വൃന്ദ വൊദ്യം)",
     "eventType": "group",
     "ageCategory": "junior"
   },
@@ -175,7 +175,7 @@ export default [
 
   {
     "name": "Folk Dance",
-    "eventType": "group",
+    "eventType": "individual",
     "ageCategory": "special"
   }
 ]
