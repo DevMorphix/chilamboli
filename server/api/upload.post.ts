@@ -43,15 +43,20 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    const r2Bucket = event.context.cloudflare?.env?.R2_BUCKET
+
+    if (!r2Bucket) {
+      throw createError({
+        statusCode: 500,
+        message: "R2 bucket binding not available",
+      })
+    }
+
     const r2Config = {
-      endpoint: config.r2Endpoint,
-      accessKeyId: config.r2AccessKeyId,
-      secretAccessKey: config.r2SecretAccessKey,
-      bucketName: config.r2BucketName,
       publicUrl: config.r2PublicUrl,
     }
 
-    const url = await uploadFileToR2(fileItem.data, filename, contentType, r2Config)
+    const url = await uploadFileToR2(r2Bucket, fileItem.data, filename, contentType, r2Config)
 
     return {
       success: true,
