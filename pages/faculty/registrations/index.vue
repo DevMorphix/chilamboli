@@ -100,6 +100,9 @@
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Participants
                 </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -152,6 +155,14 @@
                       +{{ registration.participants.length - 3 }} more
                     </span>
                   </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                  <NuxtLink
+                    :to="`/faculty/registrations/edit/${registration.id}`"
+                    class="text-blue-600 hover:text-blue-700 font-medium px-4 py-2 bg-blue-50 rounded"
+                  >
+                    Edit
+                  </NuxtLink>
                 </td>
               </tr>
             </tbody>
