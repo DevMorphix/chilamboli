@@ -1,6 +1,7 @@
 import { useDB } from "../../utils/db"
 import { faculty, schools } from "../../database/schema"
 import { storeOtp, generateOtp } from "../../utils/kv"
+import { sendOtpEmail } from "../../utils/email"
 import { eq } from "drizzle-orm"
 import { nanoid } from "nanoid"
 import bcrypt from "bcryptjs"
@@ -77,16 +78,22 @@ export default defineEventHandler(async (event) => {
     const otp = generateOtp()
     await storeOtp(newFaculty.id, otp)
 
-    // TODO: In production, send OTP via email
-    // For now, return OTP in response (development only)
-    console.log(`OTP for ${schoolEmail}: ${otp}`)
+    // Send OTP via email
+    const config = useRuntimeConfig(event)
+    try {
+      await sendOtpEmail(schoolEmail, otp, {
+        resendApiKey: config.resendApiKey,
+      })
+    } catch (error: any) {
+      console.error("Failed to send OTP email:", error)
+      // Still return success, but log the error
+      // The OTP is stored and can be resent if needed
+    }
 
     return {
       success: true,
       message: "Registration successful. Please verify your email with the OTP sent.",
       facultyId: newFaculty.id,
-      // Remove this in production
-      developmentOtp: otp,
     }
   } catch (error: any) {
     console.error("Error registering faculty:", error)

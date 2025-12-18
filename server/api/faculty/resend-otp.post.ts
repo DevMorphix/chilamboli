@@ -1,6 +1,7 @@
 import { useDB } from "../../utils/db"
 import { faculty } from "../../database/schema"
 import { storeOtp, generateOtp } from "../../utils/kv"
+import { sendOtpEmail } from "../../utils/email"
 import { eq } from "drizzle-orm"
 
 export default defineEventHandler(async (event) => {
@@ -41,14 +42,23 @@ export default defineEventHandler(async (event) => {
     const otp = generateOtp()
     await storeOtp(facultyId, otp)
 
-    // TODO: In production, send OTP via email
-    console.log(`New OTP for ${facultyMember.schoolEmail}: ${otp}`)
+    // Send OTP via email
+    const config = useRuntimeConfig(event)
+    try {
+      await sendOtpEmail(facultyMember.schoolEmail, otp, {
+        resendApiKey: config.resendApiKey,
+      })
+    } catch (error: any) {
+      console.error("Failed to send OTP email:", error)
+      throw createError({
+        statusCode: 500,
+        message: "Failed to send OTP email. Please try again later.",
+      })
+    }
 
     return {
       success: true,
       message: "New OTP sent to your email",
-      // Remove this in production
-      developmentOtp: otp,
     }
   } catch (error: any) {
     console.error("Error resending OTP:", error)
