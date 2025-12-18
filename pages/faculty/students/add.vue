@@ -214,6 +214,8 @@ import { useRouter } from "next/navigation"
 </template>
 
 <script setup lang="ts">
+import { nanoid } from 'nanoid'
+
 const router = useRouter()
 
 const faculty = ref<any>(null)
@@ -278,11 +280,11 @@ const removeCertificate = () => {
   certificateFile.value = null
 }
 
-const uploadFile = async (file: File): Promise<string> => {
+const uploadFile = async (file: File, folder: string, filename: string): Promise<string> => {
   const formData = new FormData()
   formData.append('file', file)
 
-  const response = await $fetch('/api/upload', {
+  const response = await $fetch(`/api/upload?folder=${folder}&filename=${filename}`, {
     method: 'POST',
     body: formData,
   })
@@ -306,10 +308,13 @@ const handleSubmit = async () => {
   loading.value = true
 
   try {
-    // Upload files
+    // Generate student ID first (same as backend)
+    const id = nanoid()
+    
+    // Upload files with proper naming
     const [photoUrl, certificateUrl] = await Promise.all([
-      uploadFile(photoFile.value),
-      uploadFile(certificateFile.value),
+      uploadFile(photoFile.value, 'photo', `photo_${id}`),
+      uploadFile(certificateFile.value, 'certificate', `certificate_${id}`),
     ])
 
     // Create student
@@ -324,6 +329,7 @@ const handleSubmit = async () => {
         disabilityCertificateUrl: certificateUrl,
         schoolId: faculty.value.schoolId,
         addedByFacultyId: faculty.value.id,
+        id,
       },
     })
 

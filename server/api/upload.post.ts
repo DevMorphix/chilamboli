@@ -2,6 +2,7 @@ import { uploadFileToR2 } from "../utils/r2"
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig(event)
+  const query = getQuery(event)
 
   try {
     const form = await readMultipartFormData(event)
@@ -56,7 +57,18 @@ export default defineEventHandler(async (event) => {
       publicUrl: config.r2PublicUrl,
     }
 
-    const url = await uploadFileToR2(r2Bucket, fileItem.data, filename, contentType, r2Config)
+    // Extract optional folder and filename from query params
+    const folder = query.folder as string | undefined
+    const customFilename = query.filename as string | undefined
+
+    const url = await uploadFileToR2(
+      r2Bucket,
+      fileItem.data,
+      filename,
+      contentType,
+      r2Config,
+      folder && customFilename ? { folder, customFilename } : undefined
+    )
 
     return {
       success: true,

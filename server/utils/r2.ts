@@ -8,8 +8,21 @@ export const uploadFileToR2 = async (
   filename: string,
   contentType: string,
   config: R2Config,
+  options?: {
+    folder?: string
+    customFilename?: string
+  },
 ): Promise<string> => {
-  const key = `uploads/${Date.now()}-${filename}`
+  let key: string
+  
+  if (options?.folder && options?.customFilename) {
+    // Use custom folder and filename
+    const extension = filename.split('.').pop() || ''
+    key = `${options.folder}/${options.customFilename}.${extension}`
+  } else {
+    // Default behavior: uploads folder with timestamp
+    key = `uploads/${Date.now()}-${filename}`
+  }
 
   await r2Bucket.put(key, file, {
     httpMetadata: {

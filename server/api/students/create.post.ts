@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     const ageCategory = calculateAgeCategory(dateOfBirth)
-    const id = nanoid()
+    const id = body.id || nanoid()
     const studentId = `STU-${nanoid(10)}`.toUpperCase()
     const chestNumber = `CH-${nanoid(8)}`.toUpperCase()
 
