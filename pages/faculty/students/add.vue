@@ -64,7 +64,7 @@
           <!-- Photo Upload -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              Student Photo <span class="text-red-500">*</span>
+              Student Photo
             </label>
             <div class="mt-2">
               <input
@@ -103,7 +103,7 @@
           <!-- Disability Certificate Upload -->
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              Disability Certificate <span class="text-red-500">*</span>
+              Disability Certificate
             </label>
             <div class="mt-2">
               <input
@@ -252,28 +252,23 @@ const uploadFile = async (file: File, folder: string, filename: string): Promise
 
 const handleSubmit = async () => {
   error.value = ''
-
-  if (!photoFile.value) {
-    error.value = 'Please upload a student photo'
-    return
-  }
-
-  if (!certificateFile.value) {
-    error.value = 'Please upload a disability certificate'
-    return
-  }
-
   loading.value = true
 
   try {
     // Generate student ID first (same as backend)
     const id = nanoid()
     
-    // Upload files with proper naming
-    const [photoUrl, certificateUrl] = await Promise.all([
-      uploadFile(photoFile.value, 'photo', `photo_${id}`),
-      uploadFile(certificateFile.value, 'certificate', `certificate_${id}`),
-    ])
+    // Upload files only if they are provided
+    let photoUrl: string | null = null
+    let certificateUrl: string | null = null
+    
+    if (photoFile.value) {
+      photoUrl = await uploadFile(photoFile.value, 'photo', `photo_${id}`)
+    }
+    
+    if (certificateFile.value) {
+      certificateUrl = await uploadFile(certificateFile.value, 'certificate', `certificate_${id}`)
+    }
 
     // Create student
     await $fetch('/api/students/create', {

@@ -42,20 +42,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  if (!photoUrl) {
-    throw createError({
-      statusCode: 400,
-      message: "Student photo is required",
-    })
-  }
-
-  if (!disabilityCertificateUrl) {
-    throw createError({
-      statusCode: 400,
-      message: "Disability certificate is required",
-    })
-  }
-
   try {
     const ageCategory = calculateAgeCategory(dateOfBirth)
     const id = body.id || nanoid()

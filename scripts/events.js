@@ -24,8 +24,6 @@ export default [
   },
 
 
-
-
   
   {
     "name": "Kavitha Parayanam",
@@ -38,12 +36,12 @@ export default [
     "ageCategory": "junior"
   },
   {
-    "name": "Folk Dance Boys (നൊടടൊടി നൃത്തം)",
+    "name": "Folk Dance Boys (നാടോടി നൃത്തം)",
     "eventType": "individual",
     "ageCategory": "junior"
   },
   {
-    "name": "Folk Dance Girls (നൊടടൊടി നൃത്തം)",
+    "name": "Folk Dance Girls (നാടോടി നൃത്തം)",
     "eventType": "individual",
     "ageCategory": "junior"
   },
@@ -66,22 +64,20 @@ export default [
     "ageCategory": "junior"
   },
   {
-    "name": "KATHA Prasangam (കഥൊപ്രസംഗം)",
+    "name": "KATHA Prasangam (കഥാപ്രസംഗം)",
     "eventType": "group",
     "ageCategory": "junior"
   },
   {
-    "name": "Instrumental Music - Fusion (വൃന്ദ വൊദ്യം)",
+    "name": "Instrumental Music - Fusion (വൃന്ദ വാദ്യം)",
     "eventType": "group",
     "ageCategory": "junior"
   },
   {
-    "name": "Folk Music (നൊടടൊടി രൊട്ട്)",
+    "name": "Folk Music (നാടോടിപ്പാട്ട്)",
     "eventType": "group",
     "ageCategory": "junior"
   },
-
-
 
 
 
@@ -134,7 +130,7 @@ export default [
     "ageCategory": "senior"
   },
   {
-    "name": "Vrunda Vadhyam – Fusion",
+    "name": "Vrunda Vadhyam - Fusion",
     "eventType": "group",
     "ageCategory": "senior"
   },
@@ -148,8 +144,6 @@ export default [
     "eventType": "group",
     "ageCategory": "senior"
   },
-
-
 
 
 
@@ -168,8 +162,6 @@ export default [
     "eventType": "group",
     "ageCategory": "combined"
   },
-
-
 
 
 

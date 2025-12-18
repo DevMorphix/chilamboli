@@ -56,14 +56,14 @@ export default defineEventHandler(async (event) => {
     // Build update object
     const updateData: Partial<typeof students.$inferInsert> = {}
 
-    if (studentName) updateData.studentName = studentName
-    if (dateOfBirth) {
+    if (studentName !== undefined) updateData.studentName = studentName
+    if (dateOfBirth !== undefined) {
       updateData.dateOfBirth = dateOfBirth
       updateData.ageCategory = calculateAgeCategory(dateOfBirth)
     }
-    if (gender) updateData.gender = gender
-    if (photoUrl) updateData.photoUrl = photoUrl
-    if (disabilityCertificateUrl) updateData.disabilityCertificateUrl = disabilityCertificateUrl
+    if (gender !== undefined) updateData.gender = gender
+    if (photoUrl !== undefined) updateData.photoUrl = photoUrl
+    if (disabilityCertificateUrl !== undefined) updateData.disabilityCertificateUrl = disabilityCertificateUrl
 
     const [updatedStudent] = await db
       .update(students)

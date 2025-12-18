@@ -169,7 +169,7 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm">
                   <NuxtLink
                     :to="`/faculty/students/edit/${student.id}`"
-                    class="text-blue-600 hover:text-blue-700 font-medium"
+                    class="text-blue-600 hover:text-blue-700 font-medium px-4 py-2 bg-blue-50 rounded"
                   >
                     Edit
                   </NuxtLink>
