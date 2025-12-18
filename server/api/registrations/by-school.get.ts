@@ -48,8 +48,9 @@ export default defineEventHandler(async (event) => {
 
         return {
           ...reg,
-          event: eventData,
+          event: eventData || null,
           participants,
+          participantIds,
         }
       })
     )

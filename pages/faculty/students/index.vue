@@ -137,7 +137,7 @@ import { useRouter } from "next/navigation"
                   <div class="flex items-center">
                     <img
                       v-if="student.photoUrl"
-                      :src="student.photoUrl"
+                      :src="toFullUrl(student.photoUrl)"
                       :alt="student.studentName"
                       class="w-10 h-10 rounded-full object-cover"
                     />
@@ -195,6 +195,7 @@ import { useRouter } from "next/navigation"
 
 <script setup lang="ts">
 const router = useRouter()
+const { toFullUrl } = useUrl()
 
 const faculty = ref<any>(null)
 const students = ref<any[]>([])

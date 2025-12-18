@@ -1,33 +1,3 @@
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
@@ -134,7 +104,7 @@ import { useRouter } from "next/navigation"
                 />
                 <img
                   v-if="student.photoUrl"
-                  :src="student.photoUrl"
+                  :src="toFullUrl(student.photoUrl)"
                   :alt="student.studentName"
                   class="w-10 h-10 rounded-full object-cover"
                 />
@@ -206,6 +176,7 @@ import { useRouter } from "next/navigation"
 
 <script setup lang="ts">
 const router = useRouter()
+const { toFullUrl } = useUrl()
 
 const faculty = ref<any>(null)
 const students = ref<any[]>([])
@@ -236,9 +207,9 @@ const filteredStudents = computed(() => {
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter((s) =>
-      s.studentName.toLowerCase().includes(query) ||
-      s.studentId.toLowerCase().includes(query) ||
-      s.chestNumber.toLowerCase().includes(query)
+      s.studentName?.toLowerCase().includes(query) ||
+      s.studentId?.toLowerCase().includes(query) ||
+      s.chestNumber?.toLowerCase().includes(query)
     )
   }
 
@@ -323,9 +294,17 @@ const toggleStudent = (student: any) => {
 }
 
 const getStudentRegistrationStatus = (studentId: string) => {
-  const studentRegs = allRegistrations.value.filter((r) =>
-    r.participantIds.includes(studentId)
-  )
+  const studentRegs = allRegistrations.value.filter((r) => {
+    // Prefer participantIds if available, otherwise check participants array
+    if (r.participantIds && Array.isArray(r.participantIds)) {
+      return r.participantIds.includes(studentId)
+    }
+    // Fallback to checking participants array
+    if (r.participants && Array.isArray(r.participants)) {
+      return r.participants.some((p: any) => p.id === studentId)
+    }
+    return false
+  })
 
   let individualCount = 0
   let groupCount = 0

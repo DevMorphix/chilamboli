@@ -119,7 +119,16 @@
               class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center">
+                <img
+                  v-if="student.photoUrl"
+                  :src="toFullUrl(student.photoUrl)"
+                  :alt="student.studentName"
+                  class="w-12 h-12 rounded-full object-cover"
+                />
+                <div
+                  v-else
+                  class="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center"
+                >
                   <span class="text-blue-700 font-semibold text-lg">
                     {{ student.studentName.charAt(0).toUpperCase() }}
                   </span>
@@ -144,6 +153,7 @@
 
 <script setup lang="ts">
 const router = useRouter()
+const { toFullUrl } = useUrl()
 
 const faculty = ref<any>(null)
 const loading = ref(true)
