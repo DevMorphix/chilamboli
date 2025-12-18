@@ -1,33 +1,3 @@
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50 p-4">
     <div class="w-full max-w-md">
@@ -154,7 +124,8 @@ const formData = ref({
 onMounted(async () => {
   try {
     const response = await $fetch('/api/schools')
-    schools.value = response
+    // Handle paginated response
+    schools.value = response.data || response || []
   } catch (err) {
     console.error('Failed to fetch schools:', err)
   }

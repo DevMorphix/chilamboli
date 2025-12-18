@@ -1,51 +1,61 @@
 import { useDB } from "../../utils/db"
 import { students } from "../../database/schema"
-import { like, and, eq, or } from "drizzle-orm"
+import { like, and, eq, or, count, asc, desc } from "drizzle-orm"
+import { getPaginationParams, createPaginatedResponse } from "../../utils/pagination"
 
 export default defineEventHandler(async (event) => {
   const db = useDB(event)
   const query = getQuery(event)
   const searchTerm = query.q as string
   const schoolId = query.schoolId as string | null
+  const { page, limit, sortBy, sortOrder } = getPaginationParams({ ...query, search: searchTerm })
 
   if (!searchTerm || searchTerm.length < 2) {
-    return []
+    return createPaginatedResponse([], 0, { page, limit, search: searchTerm, sortBy, sortOrder })
   }
 
   try {
     const searchPattern = `%${searchTerm}%`
+    const searchWhere = or(
+      like(students.studentName, searchPattern),
+      like(students.studentId, searchPattern),
+      like(students.chestNumber, searchPattern)
+    )
     
-    let result
+    let whereClause: any = searchWhere
     if (schoolId) {
-      result = await db
-        .select()
-        .from(students)
-        .where(
-          and(
-            eq(students.schoolId, schoolId),
-            or(
-              like(students.studentName, searchPattern),
-              like(students.studentId, searchPattern),
-              like(students.chestNumber, searchPattern)
-            )
-          )
-        )
-        .limit(10)
-    } else {
-      result = await db
-        .select()
-        .from(students)
-        .where(
-          or(
-            like(students.studentName, searchPattern),
-            like(students.studentId, searchPattern),
-            like(students.chestNumber, searchPattern)
-          )
-        )
-        .limit(10)
+      whereClause = and(
+        eq(students.schoolId, schoolId),
+        searchWhere
+      )
     }
 
-    return result
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(students)
+      .where(whereClause)
+
+    const total = totalResult.count
+
+    // Apply sorting
+    let orderByClause: any = asc(students.studentName) // default
+    if (sortBy) {
+      const sortField = students[sortBy as keyof typeof students] as any
+      if (sortField) {
+        orderByClause = sortOrder === 'desc' ? desc(sortField) : asc(sortField)
+      }
+    }
+
+    const offset = (page - 1) * limit
+    const result = await db
+      .select()
+      .from(students)
+      .where(whereClause)
+      .orderBy(orderByClause)
+      .limit(limit)
+      .offset(offset)
+
+    return createPaginatedResponse(result, total, { page, limit, search: searchTerm, sortBy, sortOrder })
   } catch (error) {
     console.error("Error searching students:", error)
     throw createError({

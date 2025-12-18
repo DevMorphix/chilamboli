@@ -1,11 +1,13 @@
 import { useDB } from "../../utils/db"
 import { registrations, events, students, registrationParticipants } from "../../database/schema"
-import { eq, desc, inArray } from "drizzle-orm"
+import { eq, desc, asc, inArray, count, and } from "drizzle-orm"
+import { getPaginationParams, createPaginatedResponse } from "../../utils/pagination"
 
 export default defineEventHandler(async (event) => {
   const db = useDB(event)
   const query = getQuery(event)
   const { schoolId } = query
+  const { page, limit, search, sortBy, sortOrder, filters } = getPaginationParams(query)
 
   if (!schoolId) {
     throw createError({
@@ -15,11 +17,40 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    let whereClause: any = eq(registrations.schoolId, schoolId as string)
+
+    // Apply filters
+    if (filters?.eventId) {
+      whereClause = and(
+        eq(registrations.schoolId, schoolId as string),
+        eq(registrations.eventId, filters.eventId as string)
+      )
+    }
+
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(registrations)
+      .where(whereClause)
+
+    const total = totalResult.count
+
+    // Apply sorting
+    let orderByClause: any = desc(registrations.createdAt) // default
+    if (sortBy) {
+      const sortField = registrations[sortBy as keyof typeof registrations] as any
+      if (sortField) {
+        orderByClause = sortOrder === 'desc' ? desc(sortField) : asc(sortField)
+      }
+    }
+
+    const offset = (page - 1) * limit
     const registrationList = await db
       .select()
       .from(registrations)
-      .where(eq(registrations.schoolId, schoolId as string))
-      .orderBy(desc(registrations.createdAt))
+      .where(whereClause)
+      .orderBy(orderByClause)
+      .limit(limit)
+      .offset(offset)
 
     // Populate event and participant details
     const registrationsWithDetails = await Promise.all(
@@ -55,9 +86,20 @@ export default defineEventHandler(async (event) => {
       })
     )
 
+    // Apply search filter in memory if needed
+    let filteredResults = registrationsWithDetails
+    if (search) {
+      const searchLower = search.toLowerCase()
+      filteredResults = registrationsWithDetails.filter(r =>
+        r.teamName?.toLowerCase().includes(searchLower) ||
+        r.event?.name?.toLowerCase().includes(searchLower) ||
+        r.participants?.some(p => p.studentName?.toLowerCase().includes(searchLower))
+      )
+    }
+
     return {
       success: true,
-      registrations: registrationsWithDetails,
+      ...createPaginatedResponse(filteredResults, total, { page, limit, search, sortBy, sortOrder, filters }),
     }
   } catch (error) {
     console.error("Error fetching registrations:", error)

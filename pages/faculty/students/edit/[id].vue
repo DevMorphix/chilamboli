@@ -1,33 +1,3 @@
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
@@ -150,7 +120,8 @@ onMounted(async () => {
 
   try {
     const response = await $fetch(`/api/students/by-school?schoolId=${faculty.value.schoolId}`)
-    student.value = response.students.find((s: any) => s.id === studentId)
+    const studentsList = response.data || response.students || []
+    student.value = studentsList.find((s: any) => s.id === studentId)
     
     if (student.value) {
       formData.value = {

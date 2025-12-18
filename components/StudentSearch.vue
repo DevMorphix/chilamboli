@@ -251,12 +251,17 @@ function handleSearch() {
         params: {
           q: searchQuery.value,
           schoolId: props.schoolId,
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
         },
       })
       
+      // Handle paginated response
+      const studentsList = (response as any).data || (response as Student[])
+      
       // Filter out already selected students
-      searchResults.value = (response as Student[]).filter(
-        (student) => !props.excludeIds.includes(student.id)
+      searchResults.value = studentsList.filter(
+        (student: Student) => !props.excludeIds.includes(student.id)
       )
       highlightedIndex.value = 0
     } catch (error) {

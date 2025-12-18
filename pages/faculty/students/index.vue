@@ -1,33 +1,3 @@
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
-import { useRouter } from "next/navigation"
 <template>
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
@@ -90,17 +60,20 @@ import { useRouter } from "next/navigation"
 
       <!-- Students List -->
       <div class="bg-white rounded-lg shadow">
-        <div class="px-6 py-4 border-b border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
           <h2 class="text-lg font-semibold text-gray-900">
-            Students ({{ filteredStudents.length }})
+            Students ({{ metadata?.total || students.length }})
           </h2>
+          <div v-if="metadata" class="text-sm text-gray-500">
+            Page {{ metadata.page }} of {{ metadata.totalPages }}
+          </div>
         </div>
 
         <div v-if="loading" class="text-center py-12 text-gray-500">
           Loading students...
         </div>
 
-        <div v-else-if="filteredStudents.length === 0" class="text-center py-12 text-gray-500">
+        <div v-else-if="students.length === 0" class="text-center py-12 text-gray-500">
           <p>No students found.</p>
           <NuxtLink to="/faculty/students/add" class="text-blue-600 hover:text-blue-700 font-medium mt-2 inline-block">
             Add your first student
@@ -111,20 +84,60 @@ import { useRouter } from "next/navigation"
           <table class="w-full">
             <thead class="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Student
+                <th 
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  @click="handleSort('studentName')"
+                >
+                  <div class="flex items-center gap-1">
+                    Student
+                    <span v-if="sortBy === 'studentName'" class="text-blue-600">
+                      {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                    </span>
+                  </div>
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Student ID
+                <th 
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  @click="handleSort('studentId')"
+                >
+                  <div class="flex items-center gap-1">
+                    Student ID
+                    <span v-if="sortBy === 'studentId'" class="text-blue-600">
+                      {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                    </span>
+                  </div>
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Chest No
+                <th 
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  @click="handleSort('chestNumber')"
+                >
+                  <div class="flex items-center gap-1">
+                    Chest No
+                    <span v-if="sortBy === 'chestNumber'" class="text-blue-600">
+                      {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                    </span>
+                  </div>
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Class
+                <th 
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  @click="handleSort('class')"
+                >
+                  <div class="flex items-center gap-1">
+                    Class
+                    <span v-if="sortBy === 'class'" class="text-blue-600">
+                      {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                    </span>
+                  </div>
                 </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
+                <th 
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  @click="handleSort('ageCategory')"
+                >
+                  <div class="flex items-center gap-1">
+                    Category
+                    <span v-if="sortBy === 'ageCategory'" class="text-blue-600">
+                      {{ sortOrder === 'asc' ? '↑' : '↓' }}
+                    </span>
+                  </div>
                 </th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -132,7 +145,7 @@ import { useRouter } from "next/navigation"
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="student in filteredStudents" :key="student.id" class="hover:bg-gray-50">
+              <tr v-for="student in students" :key="student.id" class="hover:bg-gray-50">
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="flex items-center">
                     <img
@@ -188,6 +201,34 @@ import { useRouter } from "next/navigation"
             </tbody>
           </table>
         </div>
+
+        <!-- Pagination -->
+        <div v-if="metadata && metadata.totalPages > 1" class="px-6 py-4 border-t border-gray-200">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <button
+                @click="changePage(metadata.page - 1)"
+                :disabled="metadata.page === 1"
+                class="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                Previous
+              </button>
+              <span class="text-sm text-gray-700">
+                Page {{ metadata.page }} of {{ metadata.totalPages }}
+              </span>
+              <button
+                @click="changePage(metadata.page + 1)"
+                :disabled="metadata.page === metadata.totalPages"
+                class="px-3 py-1 border border-gray-300 rounded-md text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              >
+                Next
+              </button>
+            </div>
+            <div class="text-sm text-gray-500">
+              Showing {{ ((metadata.page - 1) * metadata.limit) + 1 }} - {{ Math.min(metadata.page * metadata.limit, metadata.total) }} of {{ metadata.total }}
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   </div>
@@ -199,33 +240,92 @@ const { toFullUrl } = useUrl()
 
 const faculty = ref<any>(null)
 const students = ref<any[]>([])
+const metadata = ref<any>(null)
 const loading = ref(true)
 const searchQuery = ref('')
 const filterCategory = ref('')
 const filterClass = ref('')
+const sortBy = ref<string>('createdAt')
+const sortOrder = ref<'asc' | 'desc'>('desc')
+const currentPage = ref(1)
+const pageLimit = ref(20)
 
-const filteredStudents = computed(() => {
-  let filtered = students.value
+let searchTimeout: NodeJS.Timeout | null = null
 
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(
-      (s) =>
-        s.studentName.toLowerCase().includes(query) ||
-        s.studentId.toLowerCase().includes(query) ||
-        s.chestNumber.toLowerCase().includes(query)
-    )
+const fetchStudents = async () => {
+  if (!faculty.value) return
+
+  loading.value = true
+  try {
+    const params: Record<string, any> = {
+      schoolId: faculty.value.schoolId,
+      page: currentPage.value,
+      limit: pageLimit.value,
+    }
+
+    if (searchQuery.value) {
+      params.search = searchQuery.value
+    }
+
+    if (filterCategory.value) {
+      params.ageCategory = filterCategory.value
+    }
+
+    if (filterClass.value) {
+      params.class = filterClass.value
+    }
+
+    if (sortBy.value) {
+      params.sortBy = sortBy.value
+      params.sortOrder = sortOrder.value
+    }
+
+    const response = await $fetch(`/api/students/by-school`, { params })
+    students.value = response.data || response.students || []
+    metadata.value = response.metadata
+  } catch (err) {
+    console.error('Failed to fetch students:', err)
+  } finally {
+    loading.value = false
   }
+}
 
-  if (filterCategory.value) {
-    filtered = filtered.filter((s) => s.ageCategory === filterCategory.value)
+const handleSort = (field: string) => {
+  if (sortBy.value === field) {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortBy.value = field
+    sortOrder.value = 'asc'
   }
+  currentPage.value = 1
+  fetchStudents()
+}
 
-  if (filterClass.value) {
-    filtered = filtered.filter((s) => s.class.toLowerCase().includes(filterClass.value.toLowerCase()))
+const changePage = (page: number) => {
+  currentPage.value = page
+  fetchStudents()
+}
+
+// Debounce filter changes
+watch([filterCategory, filterClass], () => {
+  if (searchTimeout) {
+    clearTimeout(searchTimeout)
   }
+  searchTimeout = setTimeout(() => {
+    currentPage.value = 1
+    fetchStudents()
+  }, 300)
+})
 
-  return filtered
+// Debounce search separately
+watch(searchQuery, () => {
+  if (searchTimeout) {
+    clearTimeout(searchTimeout)
+  }
+  searchTimeout = setTimeout(() => {
+    currentPage.value = 1
+    fetchStudents()
+  }, 300)
 })
 
 onMounted(async () => {
@@ -236,15 +336,7 @@ onMounted(async () => {
   }
 
   faculty.value = JSON.parse(storedFaculty)
-
-  try {
-    const response = await $fetch(`/api/students/by-school?schoolId=${faculty.value.schoolId}`)
-    students.value = response.students
-  } catch (err) {
-    console.error('Failed to fetch students:', err)
-  } finally {
-    loading.value = false
-  }
+  await fetchStudents()
 })
 
 const formatDate = (dateString: string) => {

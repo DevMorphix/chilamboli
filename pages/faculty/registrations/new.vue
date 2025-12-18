@@ -244,11 +244,11 @@ onMounted(async () => {
 
   try {
     const [studentsRes, registrationsRes] = await Promise.all([
-      $fetch(`/api/students/by-school?schoolId=${faculty.value.schoolId}`),
-      $fetch(`/api/registrations/by-school?schoolId=${faculty.value.schoolId}`),
+      $fetch(`/api/students/by-school?schoolId=${faculty.value.schoolId}&sortBy=createdAt&sortOrder=desc`),
+      $fetch(`/api/registrations/by-school?schoolId=${faculty.value.schoolId}&sortBy=createdAt&sortOrder=desc`),
     ])
-    students.value = studentsRes.students
-    allRegistrations.value = registrationsRes.registrations
+    students.value = studentsRes.data || studentsRes.students || []
+    allRegistrations.value = registrationsRes.data || registrationsRes.registrations || []
   } catch (err) {
     console.error('Failed to fetch data:', err)
   }
@@ -262,7 +262,7 @@ const loadEvents = async () => {
 
   try {
     const response = await $fetch(`/api/events/by-category?ageCategory=${selectedAgeCategory.value}`)
-    availableEvents.value = response.events
+    availableEvents.value = response.data || response.events || []
   } catch (err) {
     console.error('Failed to fetch events:', err)
   }

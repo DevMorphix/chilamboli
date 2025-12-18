@@ -160,10 +160,10 @@ const loading = ref(true)
 const recentStudents = ref<any[]>([])
 const registrations = ref<any[]>([])
 
-const stats = computed(() => ({
-  totalStudents: recentStudents.value.length,
-  totalRegistrations: registrations.value.length,
-}))
+const stats = ref({
+  totalStudents: 0,
+  totalRegistrations: 0,
+})
 
 onMounted(async () => {
   // Check if faculty is logged in
@@ -175,15 +175,27 @@ onMounted(async () => {
 
   faculty.value = JSON.parse(storedFaculty)
 
-  // Fetch data
+  // Fetch data - recent items sorted by createdAt desc
   try {
     const [studentsRes, registrationsRes] = await Promise.all([
-      $fetch(`/api/students/by-school?schoolId=${faculty.value.schoolId}`),
-      $fetch(`/api/registrations/by-school?schoolId=${faculty.value.schoolId}`),
+      $fetch(`/api/students/by-school?schoolId=${faculty.value.schoolId}&limit=5&sortBy=createdAt&sortOrder=desc`),
+      $fetch(`/api/registrations/by-school?schoolId=${faculty.value.schoolId}&limit=10&sortBy=createdAt&sortOrder=desc`),
     ])
 
-    recentStudents.value = studentsRes.students.slice(0, 5)
-    registrations.value = registrationsRes.registrations
+    recentStudents.value = studentsRes.data || studentsRes.students || []
+    registrations.value = registrationsRes.data || registrationsRes.registrations || []
+    
+    // Update stats from metadata if available, otherwise use array length
+    if (studentsRes.metadata) {
+      stats.value.totalStudents = studentsRes.metadata.total
+    } else {
+      stats.value.totalStudents = recentStudents.value.length
+    }
+    if (registrationsRes.metadata) {
+      stats.value.totalRegistrations = registrationsRes.metadata.total
+    } else {
+      stats.value.totalRegistrations = registrations.value.length
+    }
   } catch (err) {
     console.error('Failed to fetch data:', err)
   } finally {

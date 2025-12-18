@@ -1,35 +1,52 @@
 import { useDB } from "../../utils/db"
 import { registrations, events, schools, registrationParticipants } from "../../database/schema"
-import { eq, and } from "drizzle-orm"
+import { eq, and, count, asc, desc } from "drizzle-orm"
+import { getPaginationParams, createPaginatedResponse } from "../../utils/pagination"
 
 export default defineEventHandler(async (event) => {
   const db = useDB(event)
   const query = getQuery(event)
+  const { page, limit, search, sortBy, sortOrder, filters } = getPaginationParams(query)
 
-  const eventId = query.eventId as string | null
-  const schoolId = query.schoolId as string | null
+  // Backward compatibility: support eventId and schoolId from query params
+  const eventId = filters?.eventId || query.eventId as string | null
+  const schoolId = filters?.schoolId || query.schoolId as string | null
 
   try {
-    let registrationList
+    let whereClause: any = undefined
 
     if (eventId && schoolId) {
-      registrationList = await db
-        .select()
-        .from(registrations)
-        .where(and(eq(registrations.eventId, eventId), eq(registrations.schoolId, schoolId)))
+      whereClause = and(eq(registrations.eventId, eventId), eq(registrations.schoolId, schoolId))
     } else if (eventId) {
-      registrationList = await db
-        .select()
-        .from(registrations)
-        .where(eq(registrations.eventId, eventId))
+      whereClause = eq(registrations.eventId, eventId)
     } else if (schoolId) {
-      registrationList = await db
-        .select()
-        .from(registrations)
-        .where(eq(registrations.schoolId, schoolId))
-    } else {
-      registrationList = await db.select().from(registrations)
+      whereClause = eq(registrations.schoolId, schoolId)
     }
+
+    const [totalResult] = await db
+      .select({ count: count() })
+      .from(registrations)
+      .where(whereClause)
+
+    const total = totalResult.count
+
+    // Apply sorting
+    let orderByClause: any = desc(registrations.createdAt) // default
+    if (sortBy) {
+      const sortField = registrations[sortBy as keyof typeof registrations] as any
+      if (sortField) {
+        orderByClause = sortOrder === 'desc' ? desc(sortField) : asc(sortField)
+      }
+    }
+
+    const offset = (page - 1) * limit
+    let registrationList = await db
+      .select()
+      .from(registrations)
+      .where(whereClause)
+      .orderBy(orderByClause)
+      .limit(limit)
+      .offset(offset)
 
     // Fetch related data
     const results = await Promise.all(
@@ -62,7 +79,18 @@ export default defineEventHandler(async (event) => {
       })
     )
 
-    return results
+    // Apply search filter in memory if needed
+    let filteredResults = results
+    if (search) {
+      const searchLower = search.toLowerCase()
+      filteredResults = results.filter(r =>
+        r.teamName?.toLowerCase().includes(searchLower) ||
+        r.event?.name?.toLowerCase().includes(searchLower) ||
+        r.school?.name?.toLowerCase().includes(searchLower)
+      )
+    }
+
+    return createPaginatedResponse(filteredResults, total, { page, limit, search, sortBy, sortOrder, filters })
   } catch (error) {
     console.error("Error fetching registrations:", error)
     throw createError({
