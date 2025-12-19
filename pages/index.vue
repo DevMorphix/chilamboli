@@ -11,12 +11,12 @@
     <div class="relative h-full flex flex-col">
       <!-- Header -->
       <header class="px-6 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <div class="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <svg class="h-5 w-5 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </div>
+       <div class="flex items-center gap-2">
+          <img 
+            src="/logo.png" 
+            alt="Chilamboli Logo" 
+            class="h-10 w-auto"
+          />
           <span class="font-semibold text-lg text-foreground">Chilamboli</span>
         </div>
         
@@ -33,7 +33,6 @@
       <!-- Hero Section -->
       <main class="flex-1 flex items-center justify-center px-6">
         <div class="max-w-3xl mx-auto text-center">
-          <!-- Badge -->
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
             <span class="relative flex h-2 w-2">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
@@ -41,12 +40,43 @@
             </span>
             Registrations Open
           </div>
+          <!-- Logo -->
+          <div class="flex justify-center mb-8">
+            <img 
+              src="/logo.png" 
+              alt="Chilamboli Logo" 
+              class="h-32 w-auto"
+            />
+          </div>
+
+          <!-- Malayalam Tagline -->
+          <h2 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary mb-6 malayalam-text">
+            6-മത് സംസ്ഥാന സ്പെഷ്യൽ സ്കൂൾ കലാമേള
+          </h2>
+
+          <!-- Badge -->
 
           <!-- Title -->
-          <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground tracking-tight mb-6">
+          <!-- <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground tracking-tight mb-6">
             School Event
             <span class="block text-primary">Registration Portal</span>
-          </h1>
+          </h1> -->
+
+          <!-- Important Dates -->
+          <!-- <div class="mb-8 space-y-3 space-x-1">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span class="font-semibold">Registration Period: 18/12/25 - 23/12/25</span>
+            </div>
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span class="font-semibold">Event Date: January 31 & February 1, 2026</span>
+            </div>
+          </div> -->
 
           <!-- Description -->
           <p class="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
@@ -72,7 +102,7 @@
           </p>
 
           <!-- Stats -->
-          <div class="mt-16 grid grid-cols-3 gap-8 max-w-lg mx-auto">
+          <!-- <div class="mt-16 grid grid-cols-3 gap-8 max-w-lg mx-auto">
             <div class="text-center">
               <div class="text-2xl sm:text-3xl font-bold text-foreground">50+</div>
               <div class="text-sm text-muted-foreground">Events</div>
@@ -85,7 +115,7 @@
               <div class="text-2xl sm:text-3xl font-bold text-foreground">5000+</div>
               <div class="text-sm text-muted-foreground">Students</div>
             </div>
-          </div>
+          </div> -->
         </div>
       </main>
 
@@ -104,6 +134,17 @@
 </script>
 
 <style scoped>
+@font-face {
+  font-family: 'Tholika';
+  src: url('/font/Tholika TraditionalUnicode.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+.malayalam-text {
+  font-family: 'Tholika', sans-serif;
+}
+
 .bg-grid-pattern {
   background-image: 
     linear-gradient(to right, hsl(var(--foreground)) 1px, transparent 1px),
