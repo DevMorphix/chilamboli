@@ -13,7 +13,7 @@
       <header class="px-6 py-4 flex items-center justify-between">
        <div class="flex items-center gap-2">
           <img 
-            src="/logo.png" 
+            src="/NewLogo.png" 
             alt="Chilamboli Logo" 
             class="h-10 w-auto"
           />
@@ -43,7 +43,7 @@
           <!-- Logo -->
           <div class="flex justify-center mb-8">
             <img 
-              src="/logo.png" 
+              src="/NewLogo.png" 
               alt="Chilamboli Logo" 
               class="h-32 w-auto"
             />
