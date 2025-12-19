@@ -63,7 +63,7 @@ export const events = sqliteTable("events", {
   name: text("name").notNull(),
   description: text("description"),
   eventType: text("event_type", { enum: ["Individual", "Group", "Combined"] }).notNull(),
-  ageCategory: text("age_category", { enum: ["Sub Junior", "Junior", "Senior", "Combined"] }).notNull(),
+  ageCategory: text("age_category", { enum: ["Sub Junior", "Junior", "Senior", "Combined", "Special"] }).notNull(),
   gender: text("gender", { enum: ["Boys", "Girls", "All"] }),
   maxTeamSize: integer("max_team_size"),
   createdAt: integer("created_at", { mode: "timestamp" })
@@ -99,9 +99,8 @@ export const registrationParticipants = sqliteTable("registration_participants",
   registrationId: text("registration_id")
     .notNull()
     .references(() => registrations.id, { onDelete: "cascade" }),
-  studentId: text("student_id")
-    .notNull()
-    .references(() => students.id),
+  participantId: text("participant_id").notNull(),
+  participantType: text("participant_type", { enum: ["student", "faculty"] }).notNull(),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -164,10 +163,8 @@ export const registrationParticipantsRelations = relations(registrationParticipa
     fields: [registrationParticipants.registrationId],
     references: [registrations.id],
   }),
-  student: one(students, {
-    fields: [registrationParticipants.studentId],
-    references: [students.id],
-  }),
+  // Note: student and faculty relations are conditional based on participantType
+  // These are defined for type safety but actual joins should be done in queries
 }))
 
 // Type exports

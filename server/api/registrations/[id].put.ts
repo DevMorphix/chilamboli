@@ -1,6 +1,6 @@
 import { useDB } from "../../utils/db"
 import { events, students, registrations, registrationParticipants } from "../../database/schema"
-import { eq, inArray } from "drizzle-orm"
+import { eq, inArray, and } from "drizzle-orm"
 import { nanoid } from "nanoid"
 
 export default defineEventHandler(async (event) => {
@@ -53,6 +53,14 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // Prevent editing special events (faculty self-registrations)
+    if (eventData.ageCategory === "Special" && eventData.eventType === "Individual") {
+      throw createError({
+        statusCode: 400,
+        message: "Special events (faculty self-registrations) cannot be edited",
+      })
+    }
+
     // Fetch all participants
     const participants = await db
       .select()
@@ -75,8 +83,8 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Validate age category for non-combined events
-    if (eventData.ageCategory !== "Combined") {
+    // Validate age category for non-combined and non-special events
+    if (eventData.ageCategory !== "Combined" && eventData.ageCategory !== "Special") {
       const wrongCategoryParticipants = participants.filter((p) => p.ageCategory !== eventData.ageCategory)
 
       if (wrongCategoryParticipants.length > 0) {
@@ -122,7 +130,12 @@ export default defineEventHandler(async (event) => {
       const participantRegistrations = await db
         .select()
         .from(registrationParticipants)
-        .where(eq(registrationParticipants.studentId, participant.id))
+        .where(
+          and(
+            eq(registrationParticipants.participantId, participant.id),
+            eq(registrationParticipants.participantType, "student")
+          )
+        )
 
       const existingRegIds = participantRegistrations
         .map((pr) => pr.registrationId)
@@ -199,7 +212,8 @@ export default defineEventHandler(async (event) => {
     const participantEntries = participantIds.map((studentId: string) => ({
       id: nanoid(),
       registrationId: id,
-      studentId,
+      participantId: studentId,
+      participantType: "student" as const,
     }))
 
     await db.insert(registrationParticipants).values(participantEntries)

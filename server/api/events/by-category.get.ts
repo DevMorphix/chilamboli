@@ -17,15 +17,25 @@ export default defineEventHandler(async (event) => {
     const filterEventType = filters?.eventType || eventType
 
     if (filterAgeCategory && filterEventType) {
-      whereClause = or(
-        eq(events.ageCategory, filterAgeCategory as "Sub Junior" | "Junior" | "Senior" | "Combined"),
-        eq(events.ageCategory, "Combined")
-      )
+      // For Special category, don't include Combined events
+      if (filterAgeCategory === "Special") {
+        whereClause = eq(events.ageCategory, filterAgeCategory as "Sub Junior" | "Junior" | "Senior" | "Combined" | "Special")
+      } else {
+        whereClause = or(
+          eq(events.ageCategory, filterAgeCategory as "Sub Junior" | "Junior" | "Senior" | "Combined" | "Special"),
+          eq(events.ageCategory, "Combined")
+        )
+      }
     } else if (filterAgeCategory) {
-      whereClause = or(
-        eq(events.ageCategory, filterAgeCategory as "Sub Junior" | "Junior" | "Senior" | "Combined"),
-        eq(events.ageCategory, "Combined")
-      )
+      // For Special category, don't include Combined events
+      if (filterAgeCategory === "Special") {
+        whereClause = eq(events.ageCategory, filterAgeCategory as "Sub Junior" | "Junior" | "Senior" | "Combined" | "Special")
+      } else {
+        whereClause = or(
+          eq(events.ageCategory, filterAgeCategory as "Sub Junior" | "Junior" | "Senior" | "Combined" | "Special"),
+          eq(events.ageCategory, "Combined")
+        )
+      }
     } else if (filterEventType) {
       whereClause = eq(events.eventType, filterEventType as "Individual" | "Group" | "Combined")
     }

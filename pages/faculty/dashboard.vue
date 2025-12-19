@@ -15,7 +15,7 @@
             </div>
             <button
               @click="handleLogout"
-              class="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors"
+              class="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors border border-red-500"
             >
               Logout
             </button>
@@ -116,7 +116,7 @@
             <div
               v-for="student in recentStudents"
               :key="student.id"
-              class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+              class="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
             >
               <div class="flex items-center gap-4">
                 <img

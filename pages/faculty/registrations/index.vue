@@ -127,7 +127,7 @@
                         {{ registration.event?.ageCategory }}
                       </span>
                       <span class="text-xs text-gray-500">
-                        {{ registration.participants?.length || 0 }} {{ registration.participants?.length === 1 ? 'participant' : 'participants' }}
+                        {{ (registration.participants?.length || 0) + (registration.facultyParticipants?.length || 0) }} {{ ((registration.participants?.length || 0) + (registration.facultyParticipants?.length || 0)) === 1 ? 'participant' : 'participants' }}
                       </span>
                     </div>
                   </div>
@@ -138,6 +138,7 @@
                 </td>
                 <td class="px-6 py-4">
                   <div class="flex flex-wrap gap-2 items-center">
+                    <!-- Student Participants -->
                     <div
                       v-for="participant in registration.participants?.slice(0, 3)"
                       :key="participant.id"
@@ -147,6 +148,17 @@
                         {{ participant.studentName?.charAt(0).toUpperCase() }}
                       </div>
                       <span class="text-sm text-gray-700">{{ participant.studentName }}</span>
+                    </div>
+                    <!-- Faculty Participants -->
+                    <div
+                      v-for="facultyParticipant in registration.facultyParticipants"
+                      :key="facultyParticipant.id"
+                      class="flex items-center gap-2 px-2 py-1 bg-green-50 rounded-full"
+                    >
+                      <div class="w-6 h-6 bg-green-200 rounded-full flex items-center justify-center text-xs text-green-700 font-semibold">
+                        {{ facultyParticipant.facultyName?.charAt(0).toUpperCase() }}
+                      </div>
+                      <span class="text-sm text-gray-700">{{ facultyParticipant.facultyName }} <span class="text-xs text-gray-500">(Faculty)</span></span>
                     </div>
                     <span
                       v-if="registration.participants && registration.participants.length > 3"

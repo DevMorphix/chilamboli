@@ -29,6 +29,7 @@
                 <option value="Sub Junior">Sub Junior</option>
                 <option value="Junior">Junior</option>
                 <option value="Senior">Senior</option>
+                <option value="Special">Special (Faculty Only)</option>
               </select>
             </div>
 
@@ -62,8 +63,21 @@
             </div>
           </div>
 
+          <!-- Step 2: Faculty Self-Registration (for special events) -->
+          <div v-if="selectedEvent && isSpecialEvent" class="p-6 bg-blue-50 rounded-lg border border-blue-200">
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">2. Confirm Registration</h3>
+            <p class="text-sm text-gray-700 mb-4">
+              This is a special event for faculty members. You will be registering yourself for this event.
+            </p>
+            <div class="bg-white p-4 rounded-md border border-blue-300">
+              <p class="text-sm font-medium text-gray-900">{{ faculty?.facultyName }}</p>
+              <p class="text-xs text-gray-600 mt-1">{{ faculty?.schoolEmail }}</p>
+              <p class="text-xs text-gray-600">{{ faculty?.schoolName }}</p>
+            </div>
+          </div>
+
           <!-- Step 2: Team Name (for group events) -->
-          <div v-if="selectedEvent && selectedEvent.eventType === 'Group'">
+          <div v-if="selectedEvent && selectedEvent.eventType === 'Group' && !isSpecialEvent">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">2. Team Name</h3>
             <input
               v-model="teamName"
@@ -75,7 +89,7 @@
           </div>
 
           <!-- Step 3: Select Participants -->
-          <div v-if="selectedEvent">
+          <div v-if="selectedEvent && !isSpecialEvent">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">
               {{ selectedEvent.eventType === 'Group' ? '3' : '2' }}. Select Participants
             </h3>
@@ -159,7 +173,7 @@
               :disabled="loading || !canSubmit"
               class="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-md transition-colors"
             >
-              {{ loading ? 'Registering...' : 'Register for Event' }}
+              {{ loading ? 'Registering...' : (isSpecialEvent ? 'Register Myself' : 'Register for Event') }}
             </button>
             <NuxtLink
               to="/faculty/registrations"
@@ -193,6 +207,10 @@ const teamName = ref('')
 const selectedStudentIds = ref<string[]>([])
 const searchQuery = ref('')
 
+const isSpecialEvent = computed(() => {
+  return selectedEvent.value?.ageCategory === 'Special' && selectedEvent.value?.eventType === 'Individual'
+})
+
 const filteredStudents = computed(() => {
   if (!selectedEvent.value) return []
   
@@ -216,7 +234,14 @@ const filteredStudents = computed(() => {
 })
 
 const canSubmit = computed(() => {
-  if (!selectedEvent.value || selectedStudentIds.value.length === 0) return false
+  if (!selectedEvent.value) return false
+  
+  // For special events, faculty registers themselves (no student selection needed)
+  if (isSpecialEvent.value) {
+    return true
+  }
+  
+  if (selectedStudentIds.value.length === 0) return false
   
   if (selectedEvent.value.eventType === 'Individual') {
     return selectedStudentIds.value.length === 1
@@ -337,8 +362,9 @@ const handleSubmit = async () => {
         eventId: selectedEventId.value,
         schoolId: faculty.value.schoolId,
         teamName: teamName.value || null,
-        participantIds: selectedStudentIds.value,
+        participantIds: isSpecialEvent.value ? [] : selectedStudentIds.value,
         registeredByFacultyId: faculty.value.id,
+        isFacultySelfRegistration: isSpecialEvent.value,
       },
     })
 

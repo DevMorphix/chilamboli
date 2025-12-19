@@ -1,5 +1,5 @@
 import { useDB } from "../../utils/db"
-import { registrations, events, schools, students, registrationParticipants } from "../../database/schema"
+import { registrations, events, schools, students, registrationParticipants, faculty } from "../../database/schema"
 import { eq, inArray } from "drizzle-orm"
 
 export default defineEventHandler(async (event) => {
@@ -46,14 +46,28 @@ export default defineEventHandler(async (event) => {
       .from(registrationParticipants)
       .where(eq(registrationParticipants.registrationId, registration.id))
 
-    const participantIds = participantRecords.map((p) => p.studentId)
+    const studentIds = participantRecords
+      .filter((p) => p.participantType === "student")
+      .map((p) => p.participantId)
+    const facultyIds = participantRecords
+      .filter((p) => p.participantType === "faculty")
+      .map((p) => p.participantId)
 
     let participants: (typeof students.$inferSelect)[] = []
-    if (participantIds.length > 0) {
+    let facultyParticipants: (typeof faculty.$inferSelect)[] = []
+    
+    if (studentIds.length > 0) {
       participants = await db
         .select()
         .from(students)
-        .where(inArray(students.id, participantIds))
+        .where(inArray(students.id, studentIds))
+    }
+    
+    if (facultyIds.length > 0) {
+      facultyParticipants = await db
+        .select()
+        .from(faculty)
+        .where(inArray(faculty.id, facultyIds))
     }
 
     return {
@@ -63,6 +77,7 @@ export default defineEventHandler(async (event) => {
       event: eventData,
       school,
       participants,
+      facultyParticipants,
     }
   } catch (error: any) {
     console.error("Error fetching registration:", error)

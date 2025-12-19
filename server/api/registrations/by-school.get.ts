@@ -1,5 +1,5 @@
 import { useDB } from "../../utils/db"
-import { registrations, events, students, registrationParticipants } from "../../database/schema"
+import { registrations, events, students, registrationParticipants, faculty } from "../../database/schema"
 import { eq, desc, asc, inArray, count, and } from "drizzle-orm"
 import { getPaginationParams, createPaginatedResponse } from "../../utils/pagination"
 
@@ -67,21 +67,36 @@ export default defineEventHandler(async (event) => {
           .from(registrationParticipants)
           .where(eq(registrationParticipants.registrationId, reg.id))
 
-        const participantIds = participantRecords.map((p) => p.studentId)
+        const studentIds = participantRecords
+          .filter((p) => p.participantType === "student")
+          .map((p) => p.participantId)
+        const facultyIds = participantRecords
+          .filter((p) => p.participantType === "faculty")
+          .map((p) => p.participantId)
 
         let participants: (typeof students.$inferSelect)[] = []
-        if (participantIds.length > 0) {
+        let facultyParticipants: (typeof faculty.$inferSelect)[] = []
+        
+        if (studentIds.length > 0) {
           participants = await db
             .select()
             .from(students)
-            .where(inArray(students.id, participantIds))
+            .where(inArray(students.id, studentIds))
+        }
+        
+        if (facultyIds.length > 0) {
+          facultyParticipants = await db
+            .select()
+            .from(faculty)
+            .where(inArray(faculty.id, facultyIds))
         }
 
         return {
           ...reg,
           event: eventData || null,
           participants,
-          participantIds,
+          facultyParticipants,
+          participantIds: studentIds,
         }
       })
     )
@@ -93,7 +108,8 @@ export default defineEventHandler(async (event) => {
       filteredResults = registrationsWithDetails.filter(r =>
         r.teamName?.toLowerCase().includes(searchLower) ||
         r.event?.name?.toLowerCase().includes(searchLower) ||
-        r.participants?.some(p => p.studentName?.toLowerCase().includes(searchLower))
+        r.participants?.some(p => p.studentName?.toLowerCase().includes(searchLower)) ||
+        r.facultyParticipants?.some(p => p.facultyName?.toLowerCase().includes(searchLower))
       )
     }
 

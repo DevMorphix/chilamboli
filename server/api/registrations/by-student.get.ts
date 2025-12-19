@@ -1,6 +1,6 @@
 import { useDB } from "../../utils/db"
 import { registrations, events, students, registrationParticipants } from "../../database/schema"
-import { eq, desc, asc, inArray, count } from "drizzle-orm"
+import { eq, desc, asc, inArray, count, and } from "drizzle-orm"
 import { getPaginationParams, createPaginatedResponse } from "../../utils/pagination"
 
 export default defineEventHandler(async (event) => {
@@ -21,7 +21,12 @@ export default defineEventHandler(async (event) => {
     const participantRecords = await db
       .select()
       .from(registrationParticipants)
-      .where(eq(registrationParticipants.studentId, studentId as string))
+      .where(
+        and(
+          eq(registrationParticipants.participantId, studentId as string),
+          eq(registrationParticipants.participantType, "student")
+        )
+      )
 
     const registrationIds = participantRecords.map((p) => p.registrationId)
 
@@ -74,14 +79,16 @@ export default defineEventHandler(async (event) => {
           .from(registrationParticipants)
           .where(eq(registrationParticipants.registrationId, reg.id))
 
-        const participantIds = allParticipantRecords.map((p) => p.studentId)
+        const studentParticipantIds = allParticipantRecords
+          .filter((p) => p.participantType === "student")
+          .map((p) => p.participantId)
 
         let participants: (typeof students.$inferSelect)[] = []
-        if (participantIds.length > 0) {
+        if (studentParticipantIds.length > 0) {
           participants = await db
             .select()
             .from(students)
-            .where(inArray(students.id, participantIds))
+            .where(inArray(students.id, studentParticipantIds))
         }
 
         return {

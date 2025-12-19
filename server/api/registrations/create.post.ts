@@ -1,15 +1,24 @@
 import { useDB } from "../../utils/db"
-import { events, students, registrations, registrationParticipants } from "../../database/schema"
-import { eq, inArray } from "drizzle-orm"
+import { events, students, registrations, registrationParticipants, faculty } from "../../database/schema"
+import { eq, inArray, and } from "drizzle-orm"
 import { nanoid } from "nanoid"
 
 export default defineEventHandler(async (event) => {
   const db = useDB(event)
   const body = await readBody(event)
 
-  const { eventId, schoolId, teamName, participantIds, registeredByFacultyId } = body
+  const { eventId, schoolId, teamName, participantIds, registeredByFacultyId, isFacultySelfRegistration } = body
 
-  if (!eventId || !schoolId || !participantIds || participantIds.length === 0 || !registeredByFacultyId) {
+  if (!eventId || !schoolId || !registeredByFacultyId) {
+    throw createError({
+      statusCode: 400,
+      message: "Missing required fields",
+    })
+  }
+
+  // For special events, faculty registers themselves (no participantIds needed)
+  // For regular events, participantIds are required
+  if (!isFacultySelfRegistration && (!participantIds || participantIds.length === 0)) {
     throw createError({
       statusCode: 400,
       message: "Missing required fields",
@@ -31,6 +40,90 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // Check if this is a special event (faculty self-registration)
+    const isSpecialEvent = eventData.ageCategory === "Special" && eventData.eventType === "Individual"
+    
+    if (isSpecialEvent && !isFacultySelfRegistration) {
+      throw createError({
+        statusCode: 400,
+        message: "This is a special event for faculty members only",
+      })
+    }
+
+    if (isSpecialEvent && isFacultySelfRegistration) {
+      // Verify the faculty member exists and belongs to the school
+      const [facultyMember] = await db
+        .select()
+        .from(faculty)
+        .where(eq(faculty.id, registeredByFacultyId))
+        .limit(1)
+
+      if (!facultyMember) {
+        throw createError({
+          statusCode: 404,
+          message: "Faculty member not found",
+        })
+      }
+
+      if (facultyMember.schoolId !== schoolId) {
+        throw createError({
+          statusCode: 400,
+          message: "Faculty member must belong to the same school",
+        })
+      }
+
+      // Check if faculty member has already registered for this event
+      const existingRegistrations = await db
+        .select()
+        .from(registrations)
+        .where(eq(registrations.eventId, eventId))
+
+      const existingRegIds = existingRegistrations.map((r) => r.id)
+
+      if (existingRegIds.length > 0) {
+        const existingParticipants = await db
+          .select()
+          .from(registrationParticipants)
+          .where(inArray(registrationParticipants.registrationId, existingRegIds))
+
+        const alreadyRegistered = existingParticipants.some(
+          (p) => p.participantId === registeredByFacultyId && p.participantType === "faculty"
+        )
+
+        if (alreadyRegistered) {
+          throw createError({
+            statusCode: 400,
+            message: "You have already registered for this event",
+          })
+        }
+      }
+
+      // Create the registration for faculty self-registration
+      const registrationId = nanoid()
+      await db.insert(registrations).values({
+        id: registrationId,
+        eventId,
+        schoolId,
+        teamName: null,
+        registeredByFacultyId,
+      })
+
+      // Create participant entry with participantId and participantType
+      await db.insert(registrationParticipants).values({
+        id: nanoid(),
+        registrationId,
+        participantId: registeredByFacultyId,
+        participantType: "faculty",
+      })
+
+      return {
+        success: true,
+        registrationId,
+        message: "Registration completed successfully",
+      }
+    }
+
+    // Regular event registration (with students)
     // Fetch all participants
     const participants = await db
       .select()
@@ -53,8 +146,8 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Validate age category for non-combined events
-    if (eventData.ageCategory !== "Combined") {
+    // Validate age category for non-combined and non-special events
+    if (eventData.ageCategory !== "Combined" && eventData.ageCategory !== "Special") {
       const wrongCategoryParticipants = participants.filter((p) => p.ageCategory !== eventData.ageCategory)
 
       if (wrongCategoryParticipants.length > 0) {
@@ -89,7 +182,12 @@ export default defineEventHandler(async (event) => {
       const participantRegistrations = await db
         .select()
         .from(registrationParticipants)
-        .where(eq(registrationParticipants.studentId, participant.id))
+        .where(
+          and(
+            eq(registrationParticipants.participantId, participant.id),
+            eq(registrationParticipants.participantType, "student")
+          )
+        )
 
       const existingRegIds = participantRegistrations.map((pr) => pr.registrationId)
 
@@ -158,7 +256,8 @@ export default defineEventHandler(async (event) => {
     const participantEntries = participantIds.map((studentId: string) => ({
       id: nanoid(),
       registrationId,
-      studentId,
+      participantId: studentId,
+      participantType: "student" as const,
     }))
 
     await db.insert(registrationParticipants).values(participantEntries)

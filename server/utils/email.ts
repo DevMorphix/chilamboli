@@ -19,20 +19,17 @@ function getResend(apiKey: string): Resend {
 }
 
 export async function sendOtpEmail(to: string, otp: string, config: EmailConfig): Promise<void> {
-  if (!config.resendApiKey) {
-    throw new Error("RESEND_API_KEY is not configured")
+  if (!config.resendApiKey || config.resendApiKey.trim() === "") {
+    throw new Error("RESEND_API_KEY is not configured. Please ensure the RESEND_API_KEY environment variable is set in your Cloudflare Pages environment variables or .dev.vars file for local development.")
   }
 
   const resend = getResend(config.resendApiKey)
 
-  // Use Resend's default sender for testing
-  // In production, you can verify a domain in Resend and update this
-  const fromEmail = "onboarding@resend.dev"
 
   const { data, error } = await resend.emails.send({
-    from: fromEmail,
-    to: [to],
-    subject: "Your OTP Verification Code",
+    from: 'Chilampoli <noreply@resend.devmorphix.com>',
+    to: to,
+    subject: `Your OTP Verification Code`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -57,23 +54,7 @@ export async function sendOtpEmail(to: string, otp: string, config: EmailConfig)
           </div>
         </body>
       </html>
-    `,
-    text: `
-      Email Verification
-      
-      Hello,
-      
-      Thank you for registering. Please use the following OTP code to verify your email address:
-      
-      ${otp}
-      
-      This code will expire in 10 minutes.
-      
-      If you didn't request this code, please ignore this email.
-      
-      Best regards,
-      Chilamboli Team
-    `,
+    `
   })
 
   if (error) {
