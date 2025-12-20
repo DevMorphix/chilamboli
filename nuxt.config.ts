@@ -4,6 +4,14 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   css: ["~/assets/css/globals.css"],
   modules: ["@nuxtjs/tailwindcss"],
+  app: {
+    head: {
+      link: [
+        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+      ],
+    },
+  },
   tailwindcss: {
     configPath: "tailwind.config.ts",
   },
