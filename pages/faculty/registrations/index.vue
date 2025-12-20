@@ -119,7 +119,7 @@
                           'bg-green-100 text-green-800': registration.event?.eventType === 'Combined',
                         }"
                       >
-                        {{ registration.event?.eventType }}
+                        {{ registration.event?.eventType }}<template v-if="registration.event?.ageCategory === 'Combined'"> (Combined)</template>
                       </span>
                       <span
                         class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800"

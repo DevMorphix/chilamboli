@@ -43,14 +43,14 @@
               >
                 <option value="">Select an event</option>
                 <option v-for="event in availableEvents" :key="event.id" :value="event.id">
-                  {{ event.name }} - {{ event.eventType }}
+                  {{ event.name }} - {{ event.eventType }}<template v-if="event.ageCategory === 'Combined'"> (Combined)</template>
                   <template v-if="event.maxTeamSize">(Max {{ event.maxTeamSize }} members)</template>
                 </option>
               </select>
 
               <div v-if="selectedEvent" class="mt-3 p-4 bg-blue-50 rounded-lg">
                 <p class="text-sm text-gray-700">
-                  <span class="font-medium">Type:</span> {{ selectedEvent.eventType }} •
+                  <span class="font-medium">Type:</span> {{ selectedEvent.eventType }}<template v-if="selectedEvent.ageCategory === 'Combined'"> (Combined)</template> •
                   <span class="font-medium">Category:</span> {{ selectedEvent.ageCategory }}
                   <template v-if="selectedEvent.maxTeamSize">
                     • <span class="font-medium">Max Team Size:</span> {{ selectedEvent.maxTeamSize }}
@@ -285,7 +285,7 @@ const loadEvents = async () => {
   }
 
   try {
-    const response = await $fetch(`/api/events/by-category?ageCategory=${selectedAgeCategory.value}`)
+    const response = await $fetch(`/api/events/by-category?ageCategory=${selectedAgeCategory.value}&limit=100`)
     availableEvents.value = response.data || response.events || []
   } catch (err) {
     console.error('Failed to fetch events:', err)

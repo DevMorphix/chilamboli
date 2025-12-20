@@ -26,7 +26,7 @@
                 <span class="font-medium">Event:</span> {{ selectedEvent.name }}
               </p>
               <p class="text-sm text-gray-700 mt-1">
-                <span class="font-medium">Type:</span> {{ selectedEvent.eventType }} •
+                <span class="font-medium">Type:</span> {{ selectedEvent.eventType }}<template v-if="selectedEvent.ageCategory === 'Combined'"> (Combined)</template> •
                 <span class="font-medium">Category:</span> {{ selectedEvent.ageCategory }}
                 <template v-if="selectedEvent.maxTeamSize">
                   • <span class="font-medium">Max Team Size:</span> {{ selectedEvent.maxTeamSize }}
