@@ -1,21 +1,23 @@
 <template>
-  <div class="min-h-screen bg-gray-50 relative">
+  <div class="min-h-screen bg-gray-50 relative grid grid-rows-[auto_1fr_auto]">
     <!-- Header -->
-    <header class="bg-white shadow-sm border-b">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p class="text-sm text-gray-600 mt-1">{{ faculty?.schoolName }}</p>
+    <header class="bg-white shadow-sm border-b sticky top-0 z-10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+        <div class="flex flex-row items-center justify-between gap-3 sm:gap-4">
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-col items-start">
+              <h1 class="text-xl sm:text-2xl font-bold text-gray-900 truncate">Dashboard</h1>
+              <p class="hidden lg:inline text-xs text-gray-600 truncate">{{ faculty?.schoolName }}</p>
+            </div>
           </div>
-          <div class="flex items-center gap-4">
-            <div class="text-right">
-              <p class="text-sm font-medium text-gray-900">{{ faculty?.facultyName }}</p>
-              <p class="text-xs text-gray-500">{{ faculty?.schoolEmail }}</p>
+          <div class="flex items-center gap-2 sm:gap-4">
+            <div class="text-right flex-1 sm:flex-none min-w-0">
+              <p class="text-xs sm:text-sm font-medium text-gray-900 truncate">{{ faculty?.facultyName }}</p>
+              <p class="text-xs text-gray-500 truncate hidden sm:block">{{ faculty?.schoolEmail }}</p>
             </div>
             <button
               @click="handleLogout"
-              class="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors border border-red-500"
+              class="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors border border-red-500 whitespace-nowrap flex-shrink-0"
             >
               Logout
             </button>
@@ -25,45 +27,45 @@
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 w-full">
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white rounded-lg shadow p-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <div class="bg-white rounded-lg shadow p-4 sm:p-6">
           <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm font-medium text-gray-600">Total Students</p>
-              <p class="text-3xl font-bold text-gray-900 mt-2">{{ stats.totalStudents }}</p>
+            <div class="flex-1 min-w-0">
+              <p class="text-xs sm:text-sm font-medium text-gray-600">Total Students</p>
+              <p class="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{{ stats.totalStudents }}</p>
             </div>
-            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 ml-3">
+              <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
               </svg>
             </div>
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white rounded-lg shadow p-4 sm:p-6">
           <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm font-medium text-gray-600">Event Registrations</p>
-              <p class="text-3xl font-bold text-gray-900 mt-2">{{ stats.totalRegistrations }}</p>
+            <div class="flex-1 min-w-0">
+              <p class="text-xs sm:text-sm font-medium text-gray-600">Event Registrations</p>
+              <p class="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{{ stats.totalRegistrations }}</p>
             </div>
-            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 ml-3">
+              <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="bg-white rounded-lg shadow p-4 sm:p-6 sm:col-span-2 md:col-span-1">
           <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm font-medium text-gray-600">School Code</p>
-              <p class="text-3xl font-bold text-gray-900 mt-2">{{ faculty?.schoolCode }}</p>
+            <div class="flex-1 min-w-0">
+              <p class="text-xs sm:text-sm font-medium text-gray-600">School Code</p>
+              <p class="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2 break-all">{{ faculty?.schoolCode }}</p>
             </div>
-            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 ml-3">
+              <svg class="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
             </div>
@@ -72,88 +74,88 @@
       </div>
 
       <!-- Action Buttons -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
         <NuxtLink
           to="/faculty/students"
-          class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow p-6 transition-colors flex items-center justify-between group"
+          class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow p-4 sm:p-6 transition-colors flex items-center justify-between group"
         >
-          <div>
-            <h3 class="text-lg font-semibold">Manage Students</h3>
-            <p class="text-blue-100 text-sm mt-1">Add, edit, and view student details</p>
+          <div class="flex-1 min-w-0">
+            <h3 class="text-base sm:text-lg font-semibold">Manage Students</h3>
+            <p class="text-blue-100 text-xs sm:text-sm mt-1">Add, edit, and view student details</p>
           </div>
-          <svg class="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
         </NuxtLink>
 
         <NuxtLink
           to="/faculty/registrations"
-          class="bg-green-600 hover:bg-green-700 text-white rounded-lg shadow p-6 transition-colors flex items-center justify-between group"
+          class="bg-green-600 hover:bg-green-700 text-white rounded-lg shadow p-4 sm:p-6 transition-colors flex items-center justify-between group"
         >
-          <div>
-            <h3 class="text-lg font-semibold">Event Registrations</h3>
-            <p class="text-green-100 text-sm mt-1">Register students for events</p>
+          <div class="flex-1 min-w-0">
+            <h3 class="text-base sm:text-lg font-semibold">Event Registrations</h3>
+            <p class="text-green-100 text-xs sm:text-sm mt-1">Register students for events</p>
           </div>
-          <svg class="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
         </NuxtLink>
 
         <button
           @click="showSupport = true"
-          class="bg-orange-600 hover:bg-orange-700 text-white rounded-lg shadow p-6 transition-colors flex items-center justify-between group"
+          class="bg-orange-600 hover:bg-orange-700 text-white rounded-lg shadow p-4 sm:p-6 transition-colors flex items-center justify-between group"
         >
-          <div class="flex flex-col items-start">
-            <h3 class="text-lg font-semibold">Support</h3>
-            <p class="text-orange-100 text-sm mt-1">Get help and contact support</p>
+          <div class="flex flex-col items-start flex-1 min-w-0">
+            <h3 class="text-base sm:text-lg font-semibold">Support</h3>
+            <p class="text-orange-100 text-xs sm:text-sm mt-1">Get help and contact support</p>
           </div>
-          <svg class="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
         </button>
       </div>
 
       <!-- Recent Students -->
-      <div class="bg-white rounded-lg shadow mb-8">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <h2 class="text-lg font-semibold text-gray-900">Recent Students</h2>
+      <div class="bg-white rounded-lg shadow mb-6 sm:mb-8">
+        <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
+          <h2 class="text-base sm:text-lg font-semibold text-gray-900">Recent Students</h2>
         </div>
-        <div class="p-6">
-          <div v-if="loading" class="text-center py-8 text-gray-500">
+        <div class="p-4 sm:p-6">
+          <div v-if="loading" class="text-center py-6 sm:py-8 text-gray-500 text-sm sm:text-base">
             Loading...
           </div>
-          <div v-else-if="recentStudents.length === 0" class="text-center py-8 text-gray-500">
+          <div v-else-if="recentStudents.length === 0" class="text-center py-6 sm:py-8 text-gray-500 text-sm sm:text-base px-2">
             No students added yet. Click "Manage Students" to add your first student.
           </div>
-          <div v-else class="space-y-4">
+          <div v-else class="space-y-3 sm:space-y-4">
             <div
               v-for="student in recentStudents"
               :key="student.id"
-              class="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+              class="flex items-center justify-between py-2 sm:py-3 px-3 sm:px-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors gap-3"
             >
-              <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
                 <img
                   v-if="student.photoUrl"
                   :src="toFullUrl(student.photoUrl)"
                   :alt="student.studentName"
-                  class="w-12 h-12 rounded-full object-cover border border-gray-200 p-1"
+                  class="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border border-gray-200 p-1 flex-shrink-0"
                 />
                 <div
                   v-else
-                  class="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center"
+                  class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-200 rounded-full flex items-center justify-center flex-shrink-0"
                 >
-                  <span class="text-blue-700 font-semibold text-lg">
+                  <span class="text-blue-700 font-semibold text-base sm:text-lg">
                     {{ student.studentName.charAt(0).toUpperCase() }}
                   </span>
                 </div>
-                <div>
-                  <p class="font-medium text-gray-900">{{ student.studentName }}</p>
-                  <p class="text-sm text-gray-500">
+                <div class="flex-1 min-w-0">
+                  <p class="font-medium text-gray-900 text-sm sm:text-base truncate">{{ student.studentName }}</p>
+                  <p class="text-xs sm:text-sm text-gray-500 truncate">
                     {{ student.ageCategory }} • {{ student.gender ? student.gender.charAt(0).toUpperCase() + student.gender.slice(1) : '' }}
                   </p>
                 </div>
               </div>
-              <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+              <span class="px-2 sm:px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap flex-shrink-0">
                 {{ student.studentId }}
               </span>
             </div>
@@ -164,19 +166,7 @@
     </main>
 
     <!-- Footer with Branding -->
-    <footer class="bg-white border-t border-gray-200 absolute bottom-0 left-0 right-0">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-          <p class="text-sm text-gray-600">
-            © {{ new Date().getFullYear() }} Chilamboli. All rights reserved.
-          </p>
-          <p class="text-sm text-gray-500">
-            Powered by 
-            <span class="font-semibold text-gray-700">Devmorphix</span>
-          </p>
-        </div>
-      </div>
-    </footer>
+    <Footer />
 
     <!-- Support Modal -->
     <SupportModal v-model="showSupport" />

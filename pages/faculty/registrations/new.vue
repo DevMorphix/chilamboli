@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gray-50 grid grid-rows-[auto_1fr_auto]">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b">
       <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -11,7 +11,7 @@
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
       <div class="bg-white rounded-lg shadow p-8">
         <form @submit.prevent="handleSubmit" class="space-y-6">
           <!-- Step 1: Select Event -->
@@ -185,6 +185,9 @@
         </form>
       </div>
     </main>
+
+    <!-- Footer -->
+    <Footer />
   </div>
 </template>
 
