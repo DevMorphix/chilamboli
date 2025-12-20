@@ -206,6 +206,8 @@ const selectedEvent = ref<any>(null)
 const teamName = ref('')
 const selectedStudentIds = ref<string[]>([])
 const searchQuery = ref('')
+const searchResults = ref<any[]>([])
+let searchTimeout: NodeJS.Timeout | null = null
 
 const isSpecialEvent = computed(() => {
   return selectedEvent.value?.ageCategory === 'Special' && selectedEvent.value?.eventType === 'Individual'
@@ -214,23 +216,14 @@ const isSpecialEvent = computed(() => {
 const filteredStudents = computed(() => {
   if (!selectedEvent.value) return []
   
-  let filtered = students.value.filter((s) => {
-    // Filter by age category (include students from selected category or Combined events allow all)
+  const studentsToFilter = searchQuery.value.length >= 2 ? searchResults.value : students.value
+  
+  return studentsToFilter.filter((s) => {
     if (selectedEvent.value.ageCategory === 'Combined') {
       return true
     }
     return s.ageCategory === selectedEvent.value.ageCategory
   })
-
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter((s) =>
-      s.studentName?.toLowerCase().includes(query) ||
-      s.studentId?.toLowerCase().includes(query)
-    )
-  }
-
-  return filtered
 })
 
 const canSubmit = computed(() => {
@@ -265,17 +258,6 @@ onMounted(async () => {
   }
 
   faculty.value = JSON.parse(storedFaculty)
-
-  try {
-    const [studentsRes, registrationsRes] = await Promise.all([
-      $fetch(`/api/students/by-school?schoolId=${faculty.value.schoolId}&sortBy=createdAt&sortOrder=desc`),
-      $fetch(`/api/registrations/by-school?schoolId=${faculty.value.schoolId}&sortBy=createdAt&sortOrder=desc`),
-    ])
-    students.value = studentsRes.data || studentsRes.students || []
-    allRegistrations.value = registrationsRes.data || registrationsRes.registrations || []
-  } catch (err) {
-    console.error('Failed to fetch data:', err)
-  }
 })
 
 const loadEvents = async () => {
@@ -292,12 +274,67 @@ const loadEvents = async () => {
   }
 }
 
-const onEventSelect = () => {
+const onEventSelect = async () => {
   selectedEvent.value = availableEvents.value.find((e) => e.id === selectedEventId.value)
   selectedStudentIds.value = []
   teamName.value = ''
   error.value = ''
+  searchQuery.value = ''
+  searchResults.value = []
+  students.value = []
+
+  if (!selectedEvent.value || isSpecialEvent.value) return
+
+  try {
+    const params: any = {
+      schoolId: faculty.value.schoolId,
+      sortBy: 'createdAt',
+      sortOrder: 'desc',
+      limit: 100,
+    }
+    if (selectedEvent.value.ageCategory !== 'Combined') {
+      params.ageCategory = selectedEvent.value.ageCategory
+    }
+
+    const [studentsRes, registrationsRes] = await Promise.all([
+      $fetch(`/api/students/by-school`, { params }),
+      $fetch(`/api/registrations/by-school?schoolId=${faculty.value.schoolId}&sortBy=createdAt&sortOrder=desc`),
+    ])
+    students.value = studentsRes.data || studentsRes.students || []
+    allRegistrations.value = registrationsRes.data || registrationsRes.registrations || []
+  } catch (err) {
+    console.error('Failed to fetch students:', err)
+    error.value = 'Failed to load students. Please try again.'
+  }
 }
+
+watch(searchQuery, async () => {
+  if (searchTimeout) {
+    clearTimeout(searchTimeout)
+  }
+
+  if (!faculty.value || !selectedEvent.value || searchQuery.value.length < 2) {
+    searchResults.value = []
+    return
+  }
+  
+  searchTimeout = setTimeout(async () => {
+    try {
+      const response = await $fetch('/api/students/search', {
+        params: {
+          q: searchQuery.value,
+          schoolId: faculty.value.schoolId,
+          ageCategory: selectedEvent.value.ageCategory,
+          limit: 100,
+        },
+      })
+      searchResults.value = response.data || response.students || []
+    } catch (err) {
+      console.error('Failed to search students:', err)
+      searchResults.value = []
+    }
+  }, 300)
+})
 
 const toggleStudent = (student: any) => {
   const index = selectedStudentIds.value.indexOf(student.id)

@@ -8,6 +8,7 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const searchTerm = query.q as string
   const schoolId = query.schoolId as string | null
+  const ageCategory = query.ageCategory as string | null
   const { page, limit, sortBy, sortOrder } = getPaginationParams({ ...query, search: searchTerm })
 
   if (!searchTerm || searchTerm.length < 2) {
@@ -22,11 +23,22 @@ export default defineEventHandler(async (event) => {
     )
     
     let whereClause: any = searchWhere
+    const conditions: any[] = [searchWhere]
+    
     if (schoolId) {
-      whereClause = and(
-        eq(students.schoolId, schoolId),
-        searchWhere
-      )
+      conditions.push(eq(students.schoolId, schoolId))
+    }
+    
+    if (ageCategory) {
+      if (ageCategory === 'Combined') {
+        // Combined events allow all age categories, so no filter needed
+      } else {
+        conditions.push(eq(students.ageCategory, ageCategory as "Sub Junior" | "Junior" | "Senior"))
+      }
+    }
+    
+    if (conditions.length > 1) {
+      whereClause = and(...conditions)
     }
 
     const [totalResult] = await db
