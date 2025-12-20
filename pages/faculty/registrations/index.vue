@@ -225,7 +225,7 @@ const filterEventType = ref('')
 const sortBy = ref<string>('')
 const sortOrder = ref<'asc' | 'desc'>('desc')
 const currentPage = ref(1)
-const pageLimit = ref(20)
+const pageLimit = ref(10)
 
 let searchTimeout: NodeJS.Timeout | null = null
 
