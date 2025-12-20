@@ -121,9 +121,21 @@
 
       <!-- Footer -->
       <footer class="px-6 py-4 text-center">
-        <p class="text-sm text-muted-foreground">
-          © {{ new Date().getFullYear() }} Chilamboli. All rights reserved.
-        </p>
+        <div class="text-xs text-muted-foreground/90 flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+          <span>© {{ new Date().getFullYear() }} Chilamboli</span>
+          <span>•</span>
+          <span>All rights reserved</span>
+          <span class="hidden sm:inline">•</span>
+          <span class="w-full sm:w-auto flex items-center justify-center sm:justify-start gap-1">
+            <span>Powered by</span>
+            <a 
+              href="https://devmorphix.com" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              class="font-medium text-primary hover:underline"
+            >Devmorphix</a>
+          </span>
+        </div>
       </footer>
     </div>
   </div>

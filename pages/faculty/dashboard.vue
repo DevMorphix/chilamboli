@@ -1,11 +1,11 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gray-50 relative">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div class="flex items-center justify-between">
           <div>
-            <h1 class="text-2xl font-bold text-gray-900">Faculty Dashboard</h1>
+            <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
             <p class="text-sm text-gray-600 mt-1">{{ faculty?.schoolName }}</p>
           </div>
           <div class="flex items-center gap-4">
@@ -72,7 +72,7 @@
       </div>
 
       <!-- Action Buttons -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <NuxtLink
           to="/faculty/students"
           class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow p-6 transition-colors flex items-center justify-between group"
@@ -98,10 +98,23 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
         </NuxtLink>
+
+        <button
+          @click="showSupport = true"
+          class="bg-orange-600 hover:bg-orange-700 text-white rounded-lg shadow p-6 transition-colors flex items-center justify-between group"
+        >
+          <div class="flex flex-col items-start">
+            <h3 class="text-lg font-semibold">Support</h3>
+            <p class="text-orange-100 text-sm mt-1">Get help and contact support</p>
+          </div>
+          <svg class="w-6 h-6 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       </div>
 
       <!-- Recent Students -->
-      <div class="bg-white rounded-lg shadow">
+      <div class="bg-white rounded-lg shadow mb-8">
         <div class="px-6 py-4 border-b border-gray-200">
           <h2 class="text-lg font-semibold text-gray-900">Recent Students</h2>
         </div>
@@ -147,7 +160,26 @@
           </div>
         </div>
       </div>
+
     </main>
+
+    <!-- Footer with Branding -->
+    <footer class="bg-white border-t border-gray-200 absolute bottom-0 left-0 right-0">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+          <p class="text-sm text-gray-600">
+            © {{ new Date().getFullYear() }} Chilamboli. All rights reserved.
+          </p>
+          <p class="text-sm text-gray-500">
+            Powered by 
+            <span class="font-semibold text-gray-700">Devmorphix</span>
+          </p>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Support Modal -->
+    <SupportModal v-model="showSupport" />
   </div>
 </template>
 
@@ -159,6 +191,7 @@ const faculty = ref<any>(null)
 const loading = ref(true)
 const recentStudents = ref<any[]>([])
 const registrations = ref<any[]>([])
+const showSupport = ref(false)
 
 const stats = ref({
   totalStudents: 0,
