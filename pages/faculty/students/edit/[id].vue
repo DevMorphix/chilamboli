@@ -221,9 +221,8 @@ onMounted(async () => {
   faculty.value = JSON.parse(storedFaculty)
 
   try {
-    const response = await $fetch(`/api/students/by-school?schoolId=${faculty.value.schoolId}`)
-    const studentsList = response.data || response.students || []
-    student.value = studentsList.find((s: any) => s.id === studentId)
+    const response = await $fetch(`/api/students/${studentId}`)
+    student.value = response.student || response
     
     if (student.value) {
       formData.value = {
@@ -233,9 +232,12 @@ onMounted(async () => {
       }
       existingPhotoUrl.value = student.value.photoUrl ? toFullUrl(student.value.photoUrl) : null
       existingCertificateUrl.value = student.value.disabilityCertificateUrl ? toFullUrl(student.value.disabilityCertificateUrl) : null
+    } else {
+      error.value = 'Student not found'
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to fetch student:', err)
+    error.value = err.data?.message || 'Failed to load student. Please try again.'
   } finally {
     loadingStudent.value = false
   }
