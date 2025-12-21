@@ -1,51 +1,34 @@
 import { useDB } from "../../utils/db"
-import { schools, faculty, students, registrations, events, registrationParticipants } from "../../database/schema"
-import { eq, and, gte, lte, lt, sql, count, desc } from "drizzle-orm"
+import { schools, faculty, students, registrations, events } from "../../database/schema"
+import { eq, sql, count, desc, gte } from "drizzle-orm"
+
+const CACHE_KEY = "admin:analytics"
+const CACHE_TTL = 60 * 60 // 1 hour in seconds
+
+interface CachedAnalytics {
+  data: any
+  capturedAt: number // timestamp when data was captured
+}
 
 export default defineEventHandler(async (event) => {
   const db = useDB(event)
-  const query = getQuery(event)
-  const period = (query.period as string) || 'this_month'
+  // Using the same KV storage as kv.ts utilities (useStorage("kv"))
+  const storage = useStorage("kv")
 
   try {
-    const now = new Date()
-    let startDate: Date
-    let endDate: Date | null = null
-
-    // Calculate start and end dates based on period
-    switch (period) {
-      case 'today': {
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
-        endDate = now
-        break
-      }
-      case 'yesterday': {
-        const yesterday = new Date(now)
-        yesterday.setDate(yesterday.getDate() - 1)
-        startDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 0, 0, 0, 0)
-        endDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59, 999)
-        break
-      }
-      case 'this_week': {
-        // Get Monday of current week
-        const dayOfWeek = now.getDay()
-        const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1) // Adjust when day is Sunday
-        startDate = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0)
-        endDate = now
-        break
-      }
-      case 'this_month': {
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0)
-        endDate = now
-        break
-      }
-      case 'all':
-      default: {
-        startDate = new Date(0) // Epoch start
-        endDate = null // No end date for "all"
-        break
+    // Try to get cached data
+    const cached = await storage.getItem<CachedAnalytics>(CACHE_KEY)
+    if (cached) {
+      return {
+        success: true,
+        ...cached.data,
+        dataCapturedAt: cached.capturedAt,
+        cached: true,
       }
     }
+
+    // If no cache, fetch fresh data
+    const capturedAt = Date.now()
 
     // Overall Statistics - Run in parallel for better performance
     const [
@@ -53,52 +36,34 @@ export default defineEventHandler(async (event) => {
       facultyCount,
       studentsCount,
       registrationsCount,
-      eventsCount,
       verifiedFacultyCount
     ] = await Promise.all([
       db.select({ count: count() }).from(schools).then(r => r[0]),
       db.select({ count: count() }).from(faculty).then(r => r[0]),
       db.select({ count: count() }).from(students).then(r => r[0]),
       db.select({ count: count() }).from(registrations).then(r => r[0]),
-      db.select({ count: count() }).from(events).then(r => r[0]),
       db.select({ count: count() }).from(faculty).where(eq(faculty.isVerified, true)).then(r => r[0])
     ])
-
-    // Helper function to build date range conditions
-    const buildDateCondition = (column: any) => {
-      if (endDate) {
-        return and(gte(column, startDate), lte(column, endDate))
-      }
-      return gte(column, startDate)
-    }
 
     // Faculty Verification Rate
     const verificationRate = verifiedFacultyCount.count / (facultyCount.count || 1) * 100
 
-    // Run independent queries in parallel for better performance
-    const recentStartDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-    
+    // Run data queries in parallel
     const [
       registrationTrends,
       studentAgeDistribution,
       studentGenderDistribution,
-      schoolParticipation,
-      eventPopularity,
-      recentRegistrations,
-      recentStudents,
-      recentFaculty,
       registrationByEventType,
       studentRegistrationTrends,
       participatingSchoolsCountResult
     ] = await Promise.all([
-      // Registration Trends (daily for selected period)
+      // Registration Trends (daily - all time)
       db
         .select({
           date: sql<string>`DATE(${registrations.createdAt}, 'unixepoch') as date`,
           count: sql<number>`COUNT(*) as count`,
         })
         .from(registrations)
-        .where(buildDateCondition(registrations.createdAt))
         .groupBy(sql`DATE(${registrations.createdAt}, 'unixepoch')`)
         .orderBy(sql`DATE(${registrations.createdAt}, 'unixepoch')`),
       
@@ -120,46 +85,6 @@ export default defineEventHandler(async (event) => {
         .from(students)
         .groupBy(students.gender),
       
-      // School Participation (top schools by registrations) - Simplified to reduce rows read
-      db
-        .select({
-          schoolId: registrations.schoolId,
-          schoolName: schools.name,
-          schoolCode: schools.schoolCode,
-          registrationCount: sql<number>`COUNT(${registrations.id}) as count`,
-        })
-        .from(registrations)
-        .innerJoin(schools, eq(registrations.schoolId, schools.id))
-        .where(buildDateCondition(registrations.createdAt))
-        .groupBy(registrations.schoolId, schools.name, schools.schoolCode)
-        .orderBy(desc(sql`COUNT(${registrations.id})`))
-        .limit(10),
-      
-      // Event Popularity (most registered events) - Simplified to reduce rows read
-      db
-        .select({
-          eventId: registrations.eventId,
-          eventName: events.name,
-          eventType: events.eventType,
-          ageCategory: events.ageCategory,
-          registrationCount: sql<number>`COUNT(${registrations.id}) as count`,
-        })
-        .from(registrations)
-        .innerJoin(events, eq(registrations.eventId, events.id))
-        .where(buildDateCondition(registrations.createdAt))
-        .groupBy(registrations.eventId, events.name, events.eventType, events.ageCategory)
-        .orderBy(desc(sql`COUNT(${registrations.id})`))
-        .limit(10),
-      
-      // Recent Activity - Registrations
-      db.select({ count: count() }).from(registrations).where(gte(registrations.createdAt, recentStartDate)).then(r => r[0]),
-      
-      // Recent Activity - Students
-      db.select({ count: count() }).from(students).where(gte(students.createdAt, recentStartDate)).then(r => r[0]),
-      
-      // Recent Activity - Faculty
-      db.select({ count: count() }).from(faculty).where(gte(faculty.createdAt, recentStartDate)).then(r => r[0]),
-      
       // Registration by Event Type
       db
         .select({
@@ -168,17 +93,15 @@ export default defineEventHandler(async (event) => {
         })
         .from(registrations)
         .innerJoin(events, eq(registrations.eventId, events.id))
-        .where(buildDateCondition(registrations.createdAt))
         .groupBy(events.eventType),
       
-      // Student registration trends (daily for comparison)
+      // Student registration trends (daily - all time)
       db
         .select({
           date: sql<string>`DATE(${students.createdAt}, 'unixepoch') as date`,
           count: sql<number>`COUNT(*) as count`,
         })
         .from(students)
-        .where(buildDateCondition(students.createdAt))
         .groupBy(sql`DATE(${students.createdAt}, 'unixepoch')`)
         .orderBy(sql`DATE(${students.createdAt}, 'unixepoch')`),
       
@@ -186,19 +109,12 @@ export default defineEventHandler(async (event) => {
       db
         .select({ count: sql<number>`COUNT(DISTINCT ${registrations.schoolId}) as count` })
         .from(registrations)
-        .where(buildDateCondition(registrations.createdAt))
         .then(r => r[0])
     ])
     
     const participatingSchoolsCount = participatingSchoolsCountResult
 
-    // School performance breakdown - Optimized to reduce rows read
-    // Strategy: Use separate aggregation queries per metric, then combine in memory
-    // This avoids cartesian products from JOINs and reads only necessary rows
-    const startTimestamp = startDate.getTime()
-    const endTimestamp = endDate ? endDate.getTime() : null
-    
-    // Get all schools first (lightweight - just IDs and names)
+    // School performance breakdown - Get all schools first
     const allSchoolsList = await db
       .select({
         id: schools.id,
@@ -208,7 +124,7 @@ export default defineEventHandler(async (event) => {
       })
       .from(schools)
     
-    // Get aggregated counts per school in parallel - each query is optimized
+    // Get aggregated counts per school in parallel
     const [
       studentCounts,
       registrationCounts,
@@ -224,14 +140,13 @@ export default defineEventHandler(async (event) => {
         .from(students)
         .groupBy(students.schoolId),
       
-      // Registration counts per school (with date filter)
+      // Registration counts per school (all time)
       db
         .select({
           schoolId: registrations.schoolId,
           count: sql<number>`COUNT(*) as count`,
         })
         .from(registrations)
-        .where(buildDateCondition(registrations.createdAt))
         .groupBy(registrations.schoolId),
       
       // Total faculty counts per school
@@ -282,40 +197,7 @@ export default defineEventHandler(async (event) => {
       .filter(school => school.totalStudents > 0 || school.totalRegistrations > 0)
       .sort((a, b) => b.totalRegistrations - a.totalRegistrations)
 
-    // Event category breakdown - Removed as it's not used in the dashboard
-    // This reduces unnecessary database reads
-
-
-    // Growth metrics (compare current period with previous period)
-    // Only calculate growth if we have an endDate (not "all time")
-    let registrationGrowth = 0
-    let currentPeriod = 0
-    let previousPeriod = 0
-    
-    if (endDate && period !== 'all') {
-      const periodDuration = endDate.getTime() - startDate.getTime()
-      const previousPeriodStart = new Date(startDate.getTime() - periodDuration)
-      const previousPeriodEnd = startDate
-      
-      const [currentPeriodRegistrations] = await db
-        .select({ count: count() })
-        .from(registrations)
-        .where(and(gte(registrations.createdAt, startDate), lte(registrations.createdAt, endDate)))
-      const [previousPeriodRegistrations] = await db
-        .select({ count: count() })
-        .from(registrations)
-        .where(and(gte(registrations.createdAt, previousPeriodStart), lt(registrations.createdAt, previousPeriodEnd)))
-      
-      currentPeriod = currentPeriodRegistrations.count
-      previousPeriod = previousPeriodRegistrations.count
-      registrationGrowth = previousPeriod > 0
-        ? ((currentPeriod - previousPeriod) / previousPeriod) * 100
-        : 0
-    }
-
-    return {
-      success: true,
-      period: period,
+    const responseData = {
       overview: {
         totalSchools: schoolsCount.count,
         participatingSchools: Number(participatingSchoolsCount.count),
@@ -324,7 +206,6 @@ export default defineEventHandler(async (event) => {
         verificationRate: Math.round(verificationRate * 100) / 100,
         totalStudents: studentsCount.count,
         totalRegistrations: registrationsCount.count,
-        totalEvents: eventsCount.count,
       },
       trends: {
         registrations: registrationTrends.map((t) => ({
@@ -350,28 +231,6 @@ export default defineEventHandler(async (event) => {
           count: Number(d.count),
         })),
       },
-      topPerformers: {
-        schools: schoolParticipation.map((s) => ({
-          schoolId: s.schoolId,
-          schoolName: s.schoolName,
-          schoolCode: s.schoolCode,
-          registrations: Number(s.registrationCount),
-          students: 0, // Removed to reduce database reads - can be added back if needed
-        })),
-        events: eventPopularity.map((e) => ({
-          eventId: e.eventId,
-          eventName: e.eventName,
-          eventType: e.eventType,
-          ageCategory: e.ageCategory,
-          registrations: Number(e.registrationCount),
-          participants: 0, // Removed to reduce database reads - can be added back if needed
-        })),
-      },
-      recentActivity: {
-        registrations: recentRegistrations.count,
-        students: recentStudents.count,
-        faculty: recentFaculty.count,
-      },
       breakdowns: {
         schoolPerformance: schoolsWithData.map((s) => ({
           schoolId: s.schoolId,
@@ -386,13 +245,21 @@ export default defineEventHandler(async (event) => {
             ? Math.round((Number(s.totalRegistrations) / Number(s.totalStudents)) * 100 * 100) / 100 
             : 0,
         })),
-        eventCategory: [], // Removed to reduce database reads
       },
-      growth: {
-        registrationGrowth: Math.round(registrationGrowth * 100) / 100,
-        currentPeriod: currentPeriod,
-        previousPeriod: previousPeriod,
-      },
+    }
+
+    // Cache the response data
+    const cacheData: CachedAnalytics = {
+      data: responseData,
+      capturedAt,
+    }
+    await storage.setItem(CACHE_KEY, cacheData, { ttl: CACHE_TTL })
+
+    return {
+      success: true,
+      ...responseData,
+      dataCapturedAt: capturedAt,
+      cached: false,
     }
   } catch (error: any) {
     console.error("Error fetching analytics:", error)
@@ -403,4 +270,3 @@ export default defineEventHandler(async (event) => {
     })
   }
 })
-

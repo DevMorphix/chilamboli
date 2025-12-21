@@ -16,10 +16,38 @@
               <p class="text-xs text-gray-500 truncate hidden sm:block">Administrator</p>
             </div>
             <button
-              @click="handleLogout"
-              class="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors border border-red-500 whitespace-nowrap flex-shrink-0"
+              @click="showPurgeModal = true"
+              :disabled="purgingCache"
+              class="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors border border-blue-500 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Reload data"
             >
-              Logout
+              <svg 
+                v-if="!purgingCache"
+                class="w-5 h-5" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <svg 
+                v-else
+                class="w-5 h-5 animate-spin" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+            <button
+              @click="handleLogout"
+              class="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors border border-red-500 flex-shrink-0"
+              title="Logout"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
             </button>
           </div>
         </div>
@@ -28,8 +56,8 @@
 
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 w-full">
-      <!-- Period Selector -->
-      <div class="mb-6 flex items-center justify-end gap-4">
+      <!-- Data Info Bar -->
+      <div class="mb-6 flex items-center justify-between gap-4">
         <div v-if="loading" class="flex items-center gap-2 text-sm text-gray-500">
           <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -37,22 +65,12 @@
           </svg>
           Loading analytics...
         </div>
-        <div class="flex items-center gap-3 bg-white rounded-lg shadow-sm border border-gray-200 px-4 py-2.5">
-          <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        <div v-else-if="analytics.dataCapturedAt" class="flex items-center gap-2 text-xs sm:text-sm text-gray-600 bg-gray-50 rounded-lg px-3 sm:px-4 py-2 border border-gray-200">
+          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Time Period:</label>
-          <select
-            v-model="selectedPeriod"
-            @change="fetchAnalytics"
-            class="px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 cursor-pointer"
-          >
-            <option value="today">Today</option>
-            <option value="yesterday">Yesterday</option>
-            <option value="this_week">This week</option>
-            <option value="this_month">This month</option>
-            <option value="all">All</option>
-          </select>
+          <span>Data captured at: <span class="font-medium">{{ formatTimestamp(analytics.dataCapturedAt) }}</span></span>
+          <span v-if="analytics.cached" class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">Cached</span>
         </div>
       </div>
 
@@ -259,6 +277,70 @@
 
     <!-- Footer -->
     <Footer />
+
+    <!-- Purge Cache Confirmation Modal -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div
+          v-if="showPurgeModal"
+          class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          @click.self="showPurgeModal = false"
+          @keydown.esc="showPurgeModal = false"
+        >
+          <div
+            class="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden"
+            @click.stop
+          >
+            <!-- Header -->
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 class="text-xl font-semibold text-gray-900">Reload Analytics Data</h2>
+              <button
+                @click="showPurgeModal = false"
+                class="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded"
+                aria-label="Close"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Content -->
+            <div class="p-6">
+              <p class="text-gray-700 mb-6">
+                This will clear the cached analytics data and fetch fresh data from the database. 
+                This may take a few moments.
+              </p>
+              <div class="flex items-center gap-3 justify-end">
+                <button
+                  @click="showPurgeModal = false"
+                  class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                  :disabled="purgingCache"
+                >
+                  Cancel
+                </button>
+                <button
+                  @click="confirmPurgeCache"
+                  class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  :disabled="purgingCache"
+                >
+                  <svg 
+                    v-if="purgingCache"
+                    class="w-4 h-4 animate-spin" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  {{ purgingCache ? 'Reloading...' : 'Reload Data' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -267,7 +349,8 @@ const router = useRouter()
 const { admin, checkAuth, logout } = useAdmin()
 
 const loading = ref(true)
-const selectedPeriod = ref('this_month')
+const purgingCache = ref(false)
+const showPurgeModal = ref(false)
 const analytics = ref<any>({})
 const currentPage = ref(1)
 const pageSize = ref(10)
@@ -474,9 +557,7 @@ const eventTypeChartOptions = computed(() => {
 const fetchAnalytics = async () => {
   loading.value = true
   try {
-    const response = await $fetch('/api/admin/analytics', {
-      params: { period: selectedPeriod.value },
-    })
+    const response = await $fetch('/api/admin/analytics')
     if (response.success) {
       analytics.value = response
     }
@@ -485,6 +566,34 @@ const fetchAnalytics = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const confirmPurgeCache = async () => {
+  purgingCache.value = true
+  showPurgeModal.value = false
+  try {
+    await $fetch('/api/admin/analytics/purge-cache', {
+      method: 'POST',
+    })
+    // Refresh analytics after purging cache
+    await fetchAnalytics()
+  } catch (err) {
+    console.error('Failed to purge cache:', err)
+  } finally {
+    purgingCache.value = false
+  }
+}
+
+const formatTimestamp = (timestamp: number) => {
+  const date = new Date(timestamp)
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
 }
 
 onMounted(async () => {
@@ -498,3 +607,26 @@ const handleLogout = () => {
   logout()
 }
 </script>
+
+<style scoped>
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-active .bg-white,
+.modal-leave-active .bg-white {
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.modal-enter-from .bg-white,
+.modal-leave-to .bg-white {
+  transform: scale(0.95);
+  opacity: 0;
+}
+</style>
