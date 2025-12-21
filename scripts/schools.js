@@ -184,6 +184,11 @@ export default [
     "schoolCode": "AID02_021",
     "location": "Ernakulam"
   },
+  {
+    "name": "Asadeepam Rehabilitation Special School, NAD, Aluva",
+    "schoolCode": "AID02_022",
+    "location": "Ernakulam"
+  },
 
 
 
