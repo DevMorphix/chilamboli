@@ -10,6 +10,8 @@
     "db:migrate": "wrangler d1 migrations apply DB --remote",
     "db:seed": "bun scripts/seed.ts > scripts/seed.sql && wrangler d1 execute DB --remote --file=scripts/seed.sql",
     "db:reset": "bun scripts/reset-db.ts > scripts/reset.sql && wrangler d1 execute DB --remote --file=scripts/reset.sql && bun run db:migrate && bun run db:seed",
+    "db:backup": "mkdir -p backup && wrangler d1 export DB --remote --output=./backup/database-$(date +%Y%m%d-%H%M%S).sql",
+    "db:restore": "wrangler d1 execute DB --remote --file=./backup/${BACKUP_FILE}",
     "deploy": "nuxt build && wrangler pages deploy dist"
   },
   "dependencies": {
