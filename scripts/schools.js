@@ -189,6 +189,11 @@ export default [
     "schoolCode": "AID02_022",
     "location": "Ernakulam"
   },
+  {
+    "name": "Snehasadan Special School, Pothiyakkaram, Kalady",
+    "schoolCode": "AID02_023",
+    "location": "Ernakulam"
+  },
 
 
 
@@ -1149,6 +1154,11 @@ export default [
   {
     "name": "Udaya Special School for Mentally Challenged, Neyyattinkara",
     "schoolCode": "AID13_024",
+    "location": "Thiruvananthapuram"
+  },
+  {
+    "name": "MERCYHOME VTC, Anappara",
+    "schoolCode": "AID13_025",
     "location": "Thiruvananthapuram"
   },
 

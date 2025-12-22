@@ -187,7 +187,7 @@ const formData = ref({
 
 const filteredSchools = computed(() => {
   if (!schoolSearchQuery.value) {
-    return schools.value.slice(0, 10)
+    return schools.value
   }
   const query = schoolSearchQuery.value.toLowerCase()
   return schools.value.filter((school: any) =>
