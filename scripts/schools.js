@@ -1156,11 +1156,6 @@ export default [
     "schoolCode": "AID13_024",
     "location": "Thiruvananthapuram"
   },
-  {
-    "name": "MERCYHOME VTC, Anappara",
-    "schoolCode": "AID13_025",
-    "location": "Thiruvananthapuram"
-  },
 
 
 
@@ -1200,5 +1195,10 @@ export default [
     "name": "Prerana Special School, Kalpetta",
     "schoolCode": "AID14_007",
     "location": "Wayanad"
-  }
+  },
+  {
+    "name": "MERCYHOME VTC, Anappara",
+    "schoolCode": "AID14_008",
+    "location": "Wayanad"
+  },
 ]
