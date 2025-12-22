@@ -12,6 +12,22 @@ export const schools = sqliteTable("schools", {
     .$defaultFn(() => new Date()),
 })
 
+// Auth table - stores authentication credentials for both faculty and admin
+export const auth = sqliteTable("auth", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(),
+  userType: text("user_type", { enum: ["faculty", "admin"] }).notNull(),
+  userId: text("user_id").notNull(), // References faculty.id or admin identifier
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date())
+    .$onUpdateFn(() => new Date()),
+})
+
 // Faculty table
 export const faculty = sqliteTable("faculty", {
   id: text("id").primaryKey(),
@@ -20,8 +36,8 @@ export const faculty = sqliteTable("faculty", {
     .references(() => schools.id),
   facultyName: text("faculty_name").notNull(),
   mobileNumber: text("mobile_number").notNull(),
-  schoolEmail: text("school_email").notNull().unique(),
-  password: text("password").notNull(),
+  createdBy: text("created_by")
+    .references(() => faculty.id), // Nullable - null for initial faculty, faculty.id for faculty-added faculty
   isVerified: integer("is_verified", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
@@ -117,10 +133,23 @@ export const schoolsRelations = relations(schools, ({ many }) => ({
   registrations: many(registrations),
 }))
 
+export const authRelations = relations(auth, ({ one }) => ({
+  // Note: Relations to faculty/admin are handled via userId field
+  // Actual joins should be done in queries based on userType
+}))
+
 export const facultyRelations = relations(faculty, ({ one, many }) => ({
   school: one(schools, {
     fields: [faculty.schoolId],
     references: [schools.id],
+  }),
+  createdByFaculty: one(faculty, {
+    fields: [faculty.createdBy],
+    references: [faculty.id],
+    relationName: "createdBy",
+  }),
+  createdFaculties: many(faculty, {
+    relationName: "createdBy",
   }),
   students: many(students),
   registrations: many(registrations),
@@ -170,6 +199,8 @@ export const registrationParticipantsRelations = relations(registrationParticipa
 // Type exports
 export type School = typeof schools.$inferSelect
 export type NewSchool = typeof schools.$inferInsert
+export type Auth = typeof auth.$inferSelect
+export type NewAuth = typeof auth.$inferInsert
 export type Faculty = typeof faculty.$inferSelect
 export type NewFaculty = typeof faculty.$inferInsert
 export type Student = typeof students.$inferSelect

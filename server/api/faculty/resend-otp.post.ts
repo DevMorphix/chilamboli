@@ -1,8 +1,8 @@
 import { useDB } from "../../utils/db"
-import { faculty } from "../../database/schema"
+import { faculty, auth } from "../../database/schema"
 import { storeOtp, generateOtp } from "../../utils/kv"
 import { sendOtpEmail } from "../../utils/email"
-import { eq } from "drizzle-orm"
+import { eq, and } from "drizzle-orm"
 
 export default defineEventHandler(async (event) => {
   const db = useDB(event)
@@ -38,6 +38,25 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // Get email from auth table
+    const [authEntry] = await db
+      .select()
+      .from(auth)
+      .where(
+        and(
+          eq(auth.userId, facultyId),
+          eq(auth.userType, "faculty")
+        )
+      )
+      .limit(1)
+
+    if (!authEntry) {
+      throw createError({
+        statusCode: 404,
+        message: "Auth entry not found for faculty",
+      })
+    }
+
     // Generate and store new OTP in KV Store
     const otp = generateOtp()
     await storeOtp(facultyId, otp)
@@ -45,7 +64,7 @@ export default defineEventHandler(async (event) => {
     // Send OTP via email
     const config = useRuntimeConfig(event)
     try {
-      await sendOtpEmail(facultyMember.schoolEmail, otp, {
+      await sendOtpEmail(authEntry.email, otp, {
         resendApiKey: config.resendApiKey,
       })
     } catch (error: any) {

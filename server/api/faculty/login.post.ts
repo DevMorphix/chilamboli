@@ -1,6 +1,6 @@
 import { useDB } from "../../utils/db"
-import { faculty, schools } from "../../database/schema"
-import { eq } from "drizzle-orm"
+import { faculty, schools, auth } from "../../database/schema"
+import { eq, and } from "drizzle-orm"
 import bcrypt from "bcryptjs"
 
 export default defineEventHandler(async (event) => {
@@ -17,16 +17,46 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    // Find auth entry for faculty
+    const [authEntry] = await db
+      .select()
+      .from(auth)
+      .where(
+        and(
+          eq(auth.email, schoolEmail),
+          eq(auth.userType, "faculty")
+        )
+      )
+      .limit(1)
+
+    if (!authEntry) {
+      throw createError({
+        statusCode: 401,
+        message: "Invalid email or password",
+      })
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, authEntry.password)
+
+    if (!isPasswordValid) {
+      throw createError({
+        statusCode: 401,
+        message: "Invalid email or password",
+      })
+    }
+
+    // Get faculty details
     const [facultyMember] = await db
       .select()
       .from(faculty)
-      .where(eq(faculty.schoolEmail, schoolEmail))
+      .where(eq(faculty.id, authEntry.userId))
       .limit(1)
 
     if (!facultyMember) {
       throw createError({
-        statusCode: 401,
-        message: "Invalid email or password",
+        statusCode: 404,
+        message: "Faculty not found",
       })
     }
 
@@ -34,15 +64,6 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 403,
         message: "Please verify your email before logging in",
-      })
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, facultyMember.password)
-
-    if (!isPasswordValid) {
-      throw createError({
-        statusCode: 401,
-        message: "Invalid email or password",
       })
     }
 
@@ -59,7 +80,7 @@ export default defineEventHandler(async (event) => {
       faculty: {
         id: facultyMember.id,
         facultyName: facultyMember.facultyName,
-        schoolEmail: facultyMember.schoolEmail,
+        schoolEmail: authEntry.email, // Use email from auth table
         mobileNumber: facultyMember.mobileNumber,
         schoolId: facultyMember.schoolId,
         schoolName: school?.name || "",

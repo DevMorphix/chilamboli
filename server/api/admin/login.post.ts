@@ -1,5 +1,10 @@
-// Simple admin authentication - in production, use proper admin table and JWT
+import { useDB } from "../../utils/db"
+import { auth } from "../../database/schema"
+import { eq, and } from "drizzle-orm"
+import bcrypt from "bcryptjs"
+
 export default defineEventHandler(async (event) => {
+  const db = useDB(event)
   const body = await readBody(event)
 
   const { email, password } = body
@@ -11,24 +16,55 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Simple admin check - replace with proper admin table in production
-  const adminEmail = process.env.ADMIN_EMAIL || "admin@chilamboli.com"
-  const adminPassword = process.env.ADMIN_PASSWORD || "admin123"
+  try {
+    // Find admin auth entry
+    const [adminAuth] = await db
+      .select()
+      .from(auth)
+      .where(
+        and(
+          eq(auth.email, email),
+          eq(auth.userType, "admin")
+        )
+      )
+      .limit(1)
 
-  if (email === adminEmail && password === adminPassword) {
+    if (!adminAuth) {
+      throw createError({
+        statusCode: 401,
+        message: "Invalid email or password",
+      })
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, adminAuth.password)
+
+    if (!isPasswordValid) {
+      throw createError({
+        statusCode: 401,
+        message: "Invalid email or password",
+      })
+    }
+
     return {
       success: true,
       message: "Login successful",
       admin: {
-        email: adminEmail,
+        email: adminAuth.email,
         role: "admin",
       },
     }
-  }
+  } catch (error: any) {
+    console.error("Error logging in admin:", error)
 
-  throw createError({
-    statusCode: 401,
-    message: "Invalid email or password",
-  })
+    if (error.statusCode) {
+      throw error
+    }
+
+    throw createError({
+      statusCode: 500,
+      message: "Failed to login",
+    })
+  }
 })
 

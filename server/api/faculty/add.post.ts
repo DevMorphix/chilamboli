@@ -10,9 +10,9 @@ export default defineEventHandler(async (event) => {
   const db = useDB(event)
   const body = await readBody(event)
 
-  const { schoolId, facultyName, mobileNumber, schoolEmail, password, createdBy } = body
+  const { schoolId, facultyName, mobileNumber, schoolEmail, password, createdByFacultyId } = body
 
-  if (!schoolId || !facultyName || !mobileNumber || !schoolEmail || !password) {
+  if (!schoolId || !facultyName || !mobileNumber || !schoolEmail || !password || !createdByFacultyId) {
     throw createError({
       statusCode: 400,
       message: "All fields are required",
@@ -28,6 +28,27 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    // Verify the creator faculty exists and is from the same school
+    const [creatorFaculty] = await db
+      .select()
+      .from(faculty)
+      .where(eq(faculty.id, createdByFacultyId))
+      .limit(1)
+
+    if (!creatorFaculty) {
+      throw createError({
+        statusCode: 404,
+        message: "Creator faculty not found",
+      })
+    }
+
+    if (creatorFaculty.schoolId !== schoolId) {
+      throw createError({
+        statusCode: 403,
+        message: "Cannot create faculty for a different school",
+      })
+    }
+
     // Check if school exists
     const [school] = await db
       .select()
@@ -56,29 +77,6 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Validate createdBy if provided (must be a faculty from the same school)
-    if (createdBy) {
-      const [creatorFaculty] = await db
-        .select()
-        .from(faculty)
-        .where(eq(faculty.id, createdBy))
-        .limit(1)
-
-      if (!creatorFaculty) {
-        throw createError({
-          statusCode: 404,
-          message: "Creator faculty not found",
-        })
-      }
-
-      if (creatorFaculty.schoolId !== schoolId) {
-        throw createError({
-          statusCode: 403,
-          message: "Cannot create faculty for a different school",
-        })
-      }
-    }
-
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10)
 
@@ -91,8 +89,8 @@ export default defineEventHandler(async (event) => {
         schoolId,
         facultyName,
         mobileNumber,
-        createdBy: createdBy || null,
-        isVerified: false,
+        createdBy: createdByFacultyId,
+        isVerified: false, // Faculty-created faculty needs verification
       })
       .returning()
 
@@ -123,11 +121,11 @@ export default defineEventHandler(async (event) => {
 
     return {
       success: true,
-      message: "Registration successful. Please verify your email with the OTP sent.",
+      message: "Faculty added successfully. Please verify their email with the OTP sent.",
       facultyId: newFaculty.id,
     }
   } catch (error: any) {
-    console.error("Error registering faculty:", error)
+    console.error("Error adding faculty:", error)
 
     if (error.statusCode) {
       throw error
@@ -135,7 +133,8 @@ export default defineEventHandler(async (event) => {
 
     throw createError({
       statusCode: 500,
-      message: "Failed to register faculty",
+      message: "Failed to add faculty",
     })
   }
 })
+

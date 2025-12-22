@@ -194,6 +194,11 @@ export default [
     "schoolCode": "AID02_023",
     "location": "Ernakulam"
   },
+  {
+    "name": "St. Alphonsa Vocational Training Centre, North Kidangoor, Angamaly",
+    "schoolCode": "AID02_024",
+    "location": "Ernakulam"
+  },
 
 
 

@@ -6,12 +6,14 @@ import { eq } from "drizzle-orm"
 import { nanoid } from "nanoid"
 import bcrypt from "bcryptjs"
 
+// TODO: Add proper admin authentication middleware
 export default defineEventHandler(async (event) => {
   const db = useDB(event)
   const body = await readBody(event)
 
-  const { schoolId, facultyName, mobileNumber, schoolEmail, password, createdBy } = body
+  const { schoolId, facultyName, mobileNumber, schoolEmail, password } = body
 
+  // Validation
   if (!schoolId || !facultyName || !mobileNumber || !schoolEmail || !password) {
     throw createError({
       statusCode: 400,
@@ -56,29 +58,6 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Validate createdBy if provided (must be a faculty from the same school)
-    if (createdBy) {
-      const [creatorFaculty] = await db
-        .select()
-        .from(faculty)
-        .where(eq(faculty.id, createdBy))
-        .limit(1)
-
-      if (!creatorFaculty) {
-        throw createError({
-          statusCode: 404,
-          message: "Creator faculty not found",
-        })
-      }
-
-      if (creatorFaculty.schoolId !== schoolId) {
-        throw createError({
-          statusCode: 403,
-          message: "Cannot create faculty for a different school",
-        })
-      }
-    }
-
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10)
 
@@ -91,8 +70,8 @@ export default defineEventHandler(async (event) => {
         schoolId,
         facultyName,
         mobileNumber,
-        createdBy: createdBy || null,
-        isVerified: false,
+        createdBy: null, // Admin creates, so no createdBy
+        isVerified: true, // Admin-created faculty can be auto-verified
       })
       .returning()
 
@@ -105,29 +84,20 @@ export default defineEventHandler(async (event) => {
       userId: id,
     })
 
-    // Generate and store OTP in KV Store
-    const otp = generateOtp()
-    await storeOtp(newFaculty.id, otp)
-
-    // Send OTP via email
-    const config = useRuntimeConfig(event)
-    try {
-      await sendOtpEmail(schoolEmail, otp, {
-        resendApiKey: config.resendApiKey,
-      })
-    } catch (error: any) {
-      console.error("Failed to send OTP email:", error)
-      // Still return success, but log the error
-      // The OTP is stored and can be resent if needed
-    }
-
     return {
       success: true,
-      message: "Registration successful. Please verify your email with the OTP sent.",
-      facultyId: newFaculty.id,
+      faculty: {
+        id: newFaculty.id,
+        facultyName: newFaculty.facultyName,
+        schoolEmail: schoolEmail, // Use email from request
+        mobileNumber: newFaculty.mobileNumber,
+        schoolId: newFaculty.schoolId,
+        isVerified: newFaculty.isVerified,
+      },
+      message: "Faculty created successfully",
     }
   } catch (error: any) {
-    console.error("Error registering faculty:", error)
+    console.error("Error creating faculty:", error)
 
     if (error.statusCode) {
       throw error
@@ -135,7 +105,8 @@ export default defineEventHandler(async (event) => {
 
     throw createError({
       statusCode: 500,
-      message: "Failed to register faculty",
+      message: "Failed to create faculty",
     })
   }
 })
+
