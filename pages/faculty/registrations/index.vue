@@ -169,12 +169,20 @@
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm">
-                  <NuxtLink
-                    :to="`/faculty/registrations/edit/${registration.id}`"
-                    class="text-blue-600 hover:text-blue-700 font-medium px-4 py-2 bg-blue-50 rounded"
-                  >
-                    Edit
-                  </NuxtLink>
+                  <div class="flex items-center gap-2">
+                    <NuxtLink
+                      :to="`/faculty/registrations/edit/${registration.id}`"
+                      class="text-blue-600 hover:text-blue-700 font-medium px-4 py-2 bg-blue-50 rounded transition-colors"
+                    >
+                      Edit
+                    </NuxtLink>
+                    <button
+                      @click="handleDeleteClick(registration.id)"
+                      class="text-red-600 hover:text-red-700 font-medium px-4 py-2 bg-red-50 rounded transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -213,6 +221,15 @@
 
     <!-- Footer -->
     <Footer />
+
+    <!-- Delete Registration Modal -->
+    <DeleteRegistrationModal
+      v-model="showDeleteModal"
+      :registration="selectedRegistration"
+      :faculty-id="faculty?.id || null"
+      :deleting="deleting"
+      @confirm="handleDeleteConfirm"
+    />
   </div>
 </template>
 
@@ -229,6 +246,9 @@ const sortBy = ref<string>('')
 const sortOrder = ref<'asc' | 'desc'>('desc')
 const currentPage = ref(1)
 const pageLimit = ref(10)
+const showDeleteModal = ref(false)
+const selectedRegistration = ref<any>(null)
+const deleting = ref(false)
 
 let searchTimeout: NodeJS.Timeout | null = null
 
@@ -338,5 +358,46 @@ const formatDate = (dateString: string) => {
     month: 'short',
     year: 'numeric',
   })
+}
+
+const handleDeleteClick = async (registrationId: string) => {
+  try {
+    // Fetch full registration details for the modal
+    const registrationData = await $fetch(`/api/registrations/${registrationId}`)
+    selectedRegistration.value = registrationData
+    showDeleteModal.value = true
+  } catch (err) {
+    console.error('Failed to fetch registration details:', err)
+    alert('Failed to load registration details. Please try again.')
+  }
+}
+
+const handleDeleteConfirm = async (registrationId: string) => {
+  if (!faculty.value || deleting.value) return
+
+  deleting.value = true
+  try {
+    await $fetch(`/api/registrations/${registrationId}`, {
+      method: 'DELETE',
+      body: {
+        facultyId: faculty.value.id,
+      },
+    })
+
+    // Close modal and refresh the list
+    showDeleteModal.value = false
+    selectedRegistration.value = null
+    
+    // Refresh the registrations list
+    await fetchRegistrations()
+    
+    // Show success message (optional - you can use a toast notification library if available)
+    alert('Registration deleted successfully')
+  } catch (err: any) {
+    console.error('Failed to delete registration:', err)
+    alert(err?.data?.message || 'Failed to delete registration. Please try again.')
+  } finally {
+    deleting.value = false
+  }
 }
 </script>
