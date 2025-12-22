@@ -206,6 +206,23 @@
         </div>
       </div>
 
+      <!-- Event Distribution Chart -->
+      <div class="mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+          <h3 class="text-base font-semibold text-gray-900 mb-4">Event Distribution</h3>
+          <apexchart
+            v-if="eventDistributionChartOptions"
+            type="bar"
+            height="500"
+            :options="eventDistributionChartOptions"
+            :series="eventDistributionSeries"
+          />
+          <div v-else class="h-64 flex items-center justify-center text-gray-400">
+            No data available
+          </div>
+        </div>
+      </div>
+
       <!-- School Performance Table -->
       <div class="bg-white rounded-lg shadow p-6 mb-8">
         <h2 class="text-xl font-semibold text-gray-900 mb-6">School Performance Breakdown</h2>
@@ -554,6 +571,151 @@ const eventTypeChartOptions = computed(() => {
   }
 })
 
+// Event Distribution Chart - Column Chart with 2 bar types showing Registrations and Students
+const eventDistributionData = computed(() => {
+  const registrationsData = analytics.value.distributions?.registrationsByEvent || []
+  const studentsData = analytics.value.distributions?.studentsByEvent || []
+  
+  if (registrationsData.length === 0 && studentsData.length === 0) return []
+  
+  // Create a single map combining both datasets for O(1) lookup
+  const eventMap = new Map<string, { eventId: string; eventName: string; registrations: number; students: number }>()
+  
+  // Process registrations data
+  for (const item of registrationsData) {
+    const existing = eventMap.get(item.eventId)
+    if (existing) {
+      existing.registrations = Number(item.count || 0)
+    } else {
+      eventMap.set(item.eventId, {
+        eventId: item.eventId,
+        eventName: item.eventName || '',
+        registrations: Number(item.count || 0),
+        students: 0,
+      })
+    }
+  }
+  
+  // Process students data
+  for (const item of studentsData) {
+    const existing = eventMap.get(item.eventId)
+    if (existing) {
+      existing.students = Number(item.count || 0)
+      // Update event name if missing
+      if (!existing.eventName && item.eventName) {
+        existing.eventName = item.eventName
+      }
+    } else {
+      eventMap.set(item.eventId, {
+        eventId: item.eventId,
+        eventName: item.eventName || '',
+        registrations: 0,
+        students: Number(item.count || 0),
+      })
+    }
+  }
+  
+  // Convert to array and sort by registration count descending
+  return Array.from(eventMap.values()).sort((a, b) => b.registrations - a.registrations)
+})
+
+const eventDistributionSeries = computed(() => {
+  const combinedData = eventDistributionData.value
+  if (combinedData.length === 0) return []
+  
+  return [
+    {
+      name: 'Registrations',
+      data: combinedData.map((item) => item.registrations),
+    },
+    {
+      name: 'Students',
+      data: combinedData.map((item) => item.students),
+    },
+  ]
+})
+
+const eventDistributionChartOptions = computed(() => {
+  const combinedData = eventDistributionData.value
+  if (combinedData.length === 0) return null
+
+  // Pre-compute categories to avoid repeated map operations
+  const categories = combinedData.map((item) => item.eventName)
+
+  return {
+    chart: {
+      type: 'bar',
+      height: 500,
+      toolbar: { show: false },
+      stacked: true,
+    },
+    plotOptions: {
+      bar: {
+        horizontal: false,
+        columnWidth: '70%',
+        borderRadius: 4,
+        dataLabels: {
+          position: 'top',
+        },
+      },
+    },
+    dataLabels: {
+      enabled: true,
+      formatter: (val: number) => val > 0 ? val.toString() : '',
+      style: {
+        fontSize: '11px',
+        fontWeight: 600,
+        colors: ['#ffffff'],
+      },
+    },
+    colors: ['#8b5cf6', '#3b82f6'],
+    xaxis: {
+      categories,
+      labels: {
+        style: { fontSize: '11px' },
+        rotate: -45,
+        rotateAlways: true,
+      },
+      title: {
+        text: 'Events',
+        style: { fontSize: '13px', fontWeight: 600 },
+      },
+    },
+    yaxis: {
+      title: {
+        text: 'Count',
+        style: { fontSize: '13px', fontWeight: 600 },
+      },
+      labels: {
+        style: { fontSize: '12px' },
+      },
+    },
+    tooltip: {
+      theme: 'light',
+      shared: true,
+      intersect: false,
+      y: {
+        formatter: (val: number, { seriesIndex }: any) => {
+          return seriesIndex === 0 ? `${val} registrations` : `${val} students`
+        },
+      },
+    },
+    grid: {
+      borderColor: '#f1f5f9',
+      strokeDashArray: 4,
+      xaxis: {
+        lines: {
+          show: false,
+        },
+      },
+    },
+    legend: {
+      position: 'top',
+      horizontalAlign: 'right',
+    },
+  }
+})
+
 const fetchAnalytics = async () => {
   loading.value = true
   try {
@@ -630,3 +792,4 @@ const handleLogout = () => {
   opacity: 0;
 }
 </style>
+

@@ -1,6 +1,6 @@
 import { useDB } from "../../utils/db"
-import { schools, faculty, students, registrations, events } from "../../database/schema"
-import { eq, sql, count, desc, gte } from "drizzle-orm"
+import { schools, faculty, students, registrations, events, registrationParticipants } from "../../database/schema"
+import { eq, sql, count, desc } from "drizzle-orm"
 
 const CACHE_KEY = "admin:analytics"
 const CACHE_TTL = 60 * 60 // 1 hour in seconds
@@ -55,7 +55,9 @@ export default defineEventHandler(async (event) => {
       studentGenderDistribution,
       registrationByEventType,
       studentRegistrationTrends,
-      participatingSchoolsCountResult
+      participatingSchoolsCountResult,
+      registrationsByEvent,
+      studentsByEvent
     ] = await Promise.all([
       // Registration Trends (daily - all time)
       db
@@ -109,7 +111,33 @@ export default defineEventHandler(async (event) => {
       db
         .select({ count: sql<number>`COUNT(DISTINCT ${registrations.schoolId}) as count` })
         .from(registrations)
-        .then(r => r[0])
+        .then(r => r[0]),
+      
+      // Registrations by Event (by event name)
+      db
+        .select({
+          eventId: events.id,
+          eventName: events.name,
+          count: sql<number>`COUNT(DISTINCT ${registrations.id}) as count`,
+        })
+        .from(registrations)
+        .innerJoin(events, eq(registrations.eventId, events.id))
+        .groupBy(events.id, events.name)
+        .orderBy(desc(sql`COUNT(DISTINCT ${registrations.id})`)),
+      
+      // Students by Event (count distinct students per event) - optimized with better join order
+      db
+        .select({
+          eventId: events.id,
+          eventName: events.name,
+          count: sql<number>`COUNT(DISTINCT ${registrationParticipants.participantId}) as count`,
+        })
+        .from(registrationParticipants)
+        .innerJoin(registrations, eq(registrationParticipants.registrationId, registrations.id))
+        .innerJoin(events, eq(registrations.eventId, events.id))
+        .where(eq(registrationParticipants.participantType, 'student'))
+        .groupBy(events.id, events.name)
+        .orderBy(desc(sql`COUNT(DISTINCT ${registrationParticipants.participantId})`))
     ])
     
     const participatingSchoolsCount = participatingSchoolsCountResult
@@ -228,6 +256,16 @@ export default defineEventHandler(async (event) => {
         })),
         registrationsByEventType: registrationByEventType.map((d) => ({
           eventType: d.eventType,
+          count: Number(d.count),
+        })),
+        registrationsByEvent: registrationsByEvent.map((d) => ({
+          eventId: d.eventId,
+          eventName: d.eventName,
+          count: Number(d.count),
+        })),
+        studentsByEvent: studentsByEvent.map((d) => ({
+          eventId: d.eventId,
+          eventName: d.eventName,
           count: Number(d.count),
         })),
       },
