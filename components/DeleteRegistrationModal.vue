@@ -156,7 +156,6 @@
 interface Props {
   modelValue: boolean
   registration: any | null
-  facultyId: string | null
   deleting?: boolean
 }
 
@@ -178,7 +177,7 @@ const handleClose = () => {
 }
 
 const handleConfirm = () => {
-  if (!props.registration || !props.facultyId || props.deleting) return
+  if (!props.registration || props.deleting) return
   emit('confirm', props.registration.id)
 }
 </script>

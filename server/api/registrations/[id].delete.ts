@@ -5,21 +5,11 @@ import { eq } from "drizzle-orm"
 export default defineEventHandler(async (event) => {
   const db = useDB(event)
   const id = event.context.params?.id
-  const body = await readBody(event)
 
   if (!id) {
     throw createError({
       statusCode: 400,
       message: "Registration ID is required",
-    })
-  }
-
-  const { facultyId } = body
-
-  if (!facultyId) {
-    throw createError({
-      statusCode: 400,
-      message: "Faculty ID is required",
     })
   }
 
@@ -38,28 +28,7 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Verify faculty exists and belongs to the same school
-    const [facultyMember] = await db
-      .select()
-      .from(faculty)
-      .where(eq(faculty.id, facultyId))
-      .limit(1)
-
-    if (!facultyMember) {
-      throw createError({
-        statusCode: 404,
-        message: "Faculty member not found",
-      })
-    }
-
-    if (facultyMember.schoolId !== registration.schoolId) {
-      throw createError({
-        statusCode: 403,
-        message: "You can only delete registrations from your own school",
-      })
-    }
-
-    // Delete the registration (cascade will delete participants due to onDelete: "cascade" in schema)
+    // Delete the registration
     await db
       .delete(registrations)
       .where(eq(registrations.id, id))

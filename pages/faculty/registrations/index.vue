@@ -226,7 +226,6 @@
     <DeleteRegistrationModal
       v-model="showDeleteModal"
       :registration="selectedRegistration"
-      :faculty-id="faculty?.id || null"
       :deleting="deleting"
       @confirm="handleDeleteConfirm"
     />
@@ -379,9 +378,6 @@ const handleDeleteConfirm = async (registrationId: string) => {
   try {
     await $fetch(`/api/registrations/${registrationId}`, {
       method: 'DELETE',
-      body: {
-        facultyId: faculty.value.id,
-      },
     })
 
     // Close modal and refresh the list
@@ -391,7 +387,6 @@ const handleDeleteConfirm = async (registrationId: string) => {
     // Refresh the registrations list
     await fetchRegistrations()
     
-    // Show success message (optional - you can use a toast notification library if available)
     alert('Registration deleted successfully')
   } catch (err: any) {
     console.error('Failed to delete registration:', err)
