@@ -334,6 +334,11 @@ export default [
     "schoolCode": "AID04_017",
     "location": "Kannur"
   },
+  {
+    "name": "CHMRI School For Differently Abled, Pariyaram",
+    "schoolCode": "AID04_018",
+    "location": "Kannur"
+  },
 
 
 
