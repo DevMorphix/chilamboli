@@ -29,7 +29,7 @@
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 w-full">
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <div class="bg-white rounded-lg shadow p-4 sm:p-6">
           <div class="flex items-center justify-between">
             <div class="flex-1 min-w-0">
@@ -39,6 +39,20 @@
             <div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 ml-3">
               <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+          <div class="flex items-center justify-between">
+            <div class="flex-1 min-w-0">
+              <p class="text-xs sm:text-sm font-medium text-gray-600">Total Faculty</p>
+              <p class="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{{ stats.totalFaculty }}</p>
+            </div>
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-indigo-100 rounded-full flex items-center justify-center flex-shrink-0 ml-3">
+              <svg class="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
             </div>
           </div>
@@ -74,7 +88,7 @@
       </div>
 
       <!-- Action Buttons -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
         <NuxtLink
           to="/faculty/students"
           class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow p-4 sm:p-6 transition-colors flex items-center justify-between group"
@@ -82,6 +96,19 @@
           <div class="flex-1 min-w-0">
             <h3 class="text-base sm:text-lg font-semibold">Manage Students</h3>
             <p class="text-blue-100 text-xs sm:text-sm mt-1">Add, edit, and view student details</p>
+          </div>
+          <svg class="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+        </NuxtLink>
+
+        <NuxtLink
+          to="/faculty/faculty"
+          class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow p-4 sm:p-6 transition-colors flex items-center justify-between group"
+        >
+          <div class="flex-1 min-w-0">
+            <h3 class="text-base sm:text-lg font-semibold">Manage Faculty</h3>
+            <p class="text-indigo-100 text-xs sm:text-sm mt-1">Add and view faculty members</p>
           </div>
           <svg class="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -185,6 +212,7 @@ const showSupport = ref(false)
 
 const stats = ref({
   totalStudents: 0,
+  totalFaculty: 0,
   totalRegistrations: 0,
 })
 
@@ -200,8 +228,9 @@ onMounted(async () => {
 
   // Fetch data - recent items sorted by createdAt desc
   try {
-    const [studentsRes, registrationsRes] = await Promise.all([
+    const [studentsRes, facultyRes, registrationsRes] = await Promise.all([
       $fetch(`/api/students/by-school?schoolId=${faculty.value.schoolId}&limit=5&sortBy=createdAt&sortOrder=desc`),
+      $fetch(`/api/faculty/by-school?schoolId=${faculty.value.schoolId}&limit=1`),
       $fetch(`/api/registrations/by-school?schoolId=${faculty.value.schoolId}&limit=10&sortBy=createdAt&sortOrder=desc`),
     ])
 
@@ -213,6 +242,11 @@ onMounted(async () => {
       stats.value.totalStudents = studentsRes.metadata.total
     } else {
       stats.value.totalStudents = recentStudents.value.length
+    }
+    if (facultyRes.metadata) {
+      stats.value.totalFaculty = facultyRes.metadata.total
+    } else {
+      stats.value.totalFaculty = 0
     }
     if (registrationsRes.metadata) {
       stats.value.totalRegistrations = registrationsRes.metadata.total

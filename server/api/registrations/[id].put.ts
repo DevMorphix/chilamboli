@@ -1,5 +1,5 @@
 import { useDB } from "../../utils/db"
-import { events, students, registrations, registrationParticipants } from "../../database/schema"
+import { events, students, registrations, registrationParticipants, faculty } from "../../database/schema"
 import { eq, inArray, and } from "drizzle-orm"
 import { nanoid } from "nanoid"
 
@@ -53,7 +53,7 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Prevent editing special events (faculty self-registrations)
+    // Prevent editing special individual events (faculty self-registrations)
     if (eventData.ageCategory === "Special" && eventData.eventType === "Individual") {
       throw createError({
         statusCode: 400,
@@ -61,11 +61,28 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Fetch all participants
-    const participants = await db
-      .select()
-      .from(students)
-      .where(inArray(students.id, participantIds))
+    // Check if this is a special group event (faculty participants)
+    const isSpecialGroupEvent = eventData.ageCategory === "Special" && eventData.eventType === "Group"
+
+    // Fetch all participants (students or faculty based on event type)
+    let participants: any[] = []
+    let participantType: "student" | "faculty" = "student"
+
+    if (isSpecialGroupEvent) {
+      // For special group events, participants are faculty members
+      participants = await db
+        .select()
+        .from(faculty)
+        .where(inArray(faculty.id, participantIds))
+      participantType = "faculty"
+    } else {
+      // For regular events, participants are students
+      participants = await db
+        .select()
+        .from(students)
+        .where(inArray(students.id, participantIds))
+      participantType = "student"
+    }
 
     if (participants.length !== participantIds.length) {
       throw createError({
@@ -83,8 +100,8 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Validate age category for non-combined and non-special events
-    if (eventData.ageCategory !== "Combined" && eventData.ageCategory !== "Special") {
+    // Validate age category for non-combined and non-special events (only for students)
+    if (!isSpecialGroupEvent && eventData.ageCategory !== "Combined" && eventData.ageCategory !== "Special") {
       const wrongCategoryParticipants = participants.filter((p) => p.ageCategory !== eventData.ageCategory)
 
       if (wrongCategoryParticipants.length > 0) {
@@ -125,17 +142,19 @@ export default defineEventHandler(async (event) => {
     // Check participation limits for each participant
     // Rule: 1 Individual + 1 Group (+ Fashion Show special, + Combined not counted)
     // But exclude the current registration when checking
-    for (const participant of participants) {
-      // Find all registrations this participant is part of
-      const participantRegistrations = await db
-        .select()
-        .from(registrationParticipants)
-        .where(
-          and(
-            eq(registrationParticipants.participantId, participant.id),
-            eq(registrationParticipants.participantType, "student")
+    // Note: This validation only applies to students, not faculty
+    if (!isSpecialGroupEvent) {
+      for (const participant of participants) {
+        // Find all registrations this participant is part of
+        const participantRegistrations = await db
+          .select()
+          .from(registrationParticipants)
+          .where(
+            and(
+              eq(registrationParticipants.participantId, participant.id),
+              eq(registrationParticipants.participantType, "student")
+            )
           )
-        )
 
       const existingRegIds = participantRegistrations
         .map((pr) => pr.registrationId)
@@ -191,6 +210,7 @@ export default defineEventHandler(async (event) => {
         }
       }
     }
+    }
 
     // Update the registration
     const updateData: Partial<typeof registrations.$inferInsert> = {}
@@ -209,11 +229,11 @@ export default defineEventHandler(async (event) => {
       .where(eq(registrationParticipants.registrationId, id))
 
     // Create new participant entries in the junction table
-    const participantEntries = participantIds.map((studentId: string) => ({
+    const participantEntries = participantIds.map((participantId: string) => ({
       id: nanoid(),
       registrationId: id,
-      participantId: studentId,
-      participantType: "student" as const,
+      participantId: participantId,
+      participantType: participantType,
     }))
 
     await db.insert(registrationParticipants).values(participantEntries)

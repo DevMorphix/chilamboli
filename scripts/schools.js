@@ -74,6 +74,11 @@ export default [
     "schoolCode": "AID01_015",
     "location": "Alappuzha"
   },
+  {
+    "name": "Infant Jesus Special school, Kunnumma, Thakazhy",
+    "schoolCode": "AID01_016",
+    "location": "Alappuzha"
+  },
 
 
 

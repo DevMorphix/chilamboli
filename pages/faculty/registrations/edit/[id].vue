@@ -50,15 +50,15 @@
             />
           </div>
 
-          <!-- Select Participants -->
-          <div>
+          <!-- Select Participants (for regular events) -->
+          <div v-if="!isSpecialGroupEvent">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Select Participants</h3>
 
             <div class="mb-4">
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="Search students by name..."
+                placeholder="Search participants by name..."
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -102,7 +102,7 @@
               </div>
 
               <div v-if="filteredStudents.length === 0" class="text-center py-8 text-gray-500">
-                No eligible students found
+                No eligible participants found
               </div>
             </div>
 
@@ -112,6 +112,50 @@
                 (Individual event - select 1 student)
               </template>
               <template v-else-if="selectedEvent.maxTeamSize">
+                / {{ selectedEvent.maxTeamSize }} (max)
+              </template>
+            </p>
+          </div>
+
+          <!-- Select Faculty Participants (for Special Group events) -->
+          <div v-if="isSpecialGroupEvent">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Select Faculty Participants</h3>
+            <div class="space-y-2 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4">
+              <div
+                v-for="facultyMember in faculties"
+                :key="facultyMember.id"
+                class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer"
+                @click="toggleFaculty(facultyMember)"
+              >
+                <input
+                  type="checkbox"
+                  :checked="selectedFacultyIds.includes(facultyMember.id)"
+                  class="w-4 h-4 text-blue-600"
+                  @click.stop="toggleFaculty(facultyMember)"
+                />
+                <div
+                  class="w-10 h-10 bg-blue-200 rounded-full flex items-center justify-center"
+                >
+                  <span class="text-blue-700 font-semibold">
+                    {{ facultyMember.facultyName.charAt(0).toUpperCase() }}
+                  </span>
+                </div>
+                <div class="flex-1">
+                  <p class="text-sm font-medium text-gray-900">{{ facultyMember.facultyName }}</p>
+                  <p class="text-xs text-gray-500">
+                    {{ facultyMember.mobileNumber }}
+                  </p>
+                </div>
+              </div>
+
+              <div v-if="faculties.length === 0" class="text-center py-8 text-gray-500">
+                No faculty members found
+              </div>
+            </div>
+
+            <p class="text-sm text-gray-600 mt-2">
+              Selected: {{ selectedFacultyIds.length }}
+              <template v-if="selectedEvent.maxTeamSize">
                 / {{ selectedEvent.maxTeamSize }} (max)
               </template>
             </p>
@@ -160,6 +204,7 @@ const registrationId = route.params.id as string
 const faculty = ref<any>(null)
 const registration = ref<any>(null)
 const students = ref<any[]>([])
+const faculties = ref<any[]>([])
 const allRegistrations = ref<any[]>([])
 const loadingRegistration = ref(true)
 const loading = ref(false)
@@ -169,9 +214,14 @@ const success = ref('')
 const selectedEvent = ref<any>(null)
 const teamName = ref('')
 const selectedStudentIds = ref<string[]>([])
+const selectedFacultyIds = ref<string[]>([])
 const searchQuery = ref('')
 const searchResults = ref<any[]>([])
 let searchTimeout: NodeJS.Timeout | null = null
+
+const isSpecialGroupEvent = computed(() => {
+  return selectedEvent.value?.ageCategory === 'Special' && selectedEvent.value?.eventType === 'Group'
+})
 
 const filteredStudents = computed(() => {
   if (!selectedEvent.value) return []
@@ -187,7 +237,20 @@ const filteredStudents = computed(() => {
 })
 
 const canSubmit = computed(() => {
-  if (!selectedEvent.value || selectedStudentIds.value.length === 0) return false
+  if (!selectedEvent.value) return false
+  
+  // For special group events, check faculty selection
+  if (isSpecialGroupEvent.value) {
+    if (selectedFacultyIds.value.length === 0) return false
+    if (!teamName.value) return false
+    if (selectedEvent.value.maxTeamSize && selectedFacultyIds.value.length > selectedEvent.value.maxTeamSize) {
+      return false
+    }
+    return true
+  }
+  
+  // Regular events with students
+  if (selectedStudentIds.value.length === 0) return false
   
   if (selectedEvent.value.eventType === 'Individual') {
     return selectedStudentIds.value.length === 1
@@ -221,11 +284,26 @@ onMounted(async () => {
     teamName.value = registrationRes.teamName || ''
     
     // Set initially selected participants
-    if (registrationRes.participants && Array.isArray(registrationRes.participants)) {
-      selectedStudentIds.value = registrationRes.participants.map((p: any) => p.id)
+    const isSpecialGroup = selectedEvent.value?.ageCategory === 'Special' && selectedEvent.value?.eventType === 'Group'
+    
+    if (isSpecialGroup) {
+      if (registrationRes.facultyParticipants && Array.isArray(registrationRes.facultyParticipants)) {
+        selectedFacultyIds.value = registrationRes.facultyParticipants.map((p: any) => p.id)
+      }
+    } else {
+      if (registrationRes.participants && Array.isArray(registrationRes.participants)) {
+        selectedStudentIds.value = registrationRes.participants.map((p: any) => p.id)
+      }
     }
-
-    if (selectedEvent.value && selectedEvent.value.ageCategory !== 'Special') {
+    if (selectedEvent.value && isSpecialGroup) {
+      // Load faculties for Special Group events
+      const [facultiesRes, registrationsRes] = await Promise.all([
+        $fetch(`/api/faculty/by-school?schoolId=${faculty.value.schoolId}&limit=100`),
+        $fetch(`/api/registrations/by-school?schoolId=${faculty.value.schoolId}&sortBy=createdAt&sortOrder=desc`),
+      ])
+      faculties.value = facultiesRes.data || []
+      allRegistrations.value = registrationsRes.data || registrationsRes.registrations || []
+    } else if (selectedEvent.value && selectedEvent.value.ageCategory !== 'Special') {
       const params: any = {
         schoolId: faculty.value.schoolId,
         sortBy: 'createdAt',
@@ -301,6 +379,21 @@ const toggleStudent = (student: any) => {
   error.value = ''
 }
 
+const toggleFaculty = (facultyMember: any) => {
+  const index = selectedFacultyIds.value.indexOf(facultyMember.id)
+  
+  if (index > -1) {
+    selectedFacultyIds.value.splice(index, 1)
+  } else {
+    if (selectedEvent.value.maxTeamSize && selectedFacultyIds.value.length >= selectedEvent.value.maxTeamSize) {
+      error.value = `Maximum ${selectedEvent.value.maxTeamSize} participants allowed`
+      return
+    }
+    selectedFacultyIds.value.push(facultyMember.id)
+  }
+  error.value = ''
+}
+
 const getStudentRegistrationStatus = (studentId: string) => {
   const studentRegs = allRegistrations.value.filter((r) => {
     // Skip the current registration being edited
@@ -347,7 +440,7 @@ const handleSubmit = async () => {
       method: 'PUT',
       body: {
         teamName: teamName.value || null,
-        participantIds: selectedStudentIds.value,
+        participantIds: isSpecialGroupEvent.value ? selectedFacultyIds.value : selectedStudentIds.value,
       },
     })
 

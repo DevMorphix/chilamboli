@@ -41,16 +41,17 @@ export default defineEventHandler(async (event) => {
     }
 
     // Check if this is a special event (faculty self-registration)
-    const isSpecialEvent = eventData.ageCategory === "Special" && eventData.eventType === "Individual"
+    const isSpecialIndividualEvent = eventData.ageCategory === "Special" && eventData.eventType === "Individual"
+    const isSpecialGroupEvent = eventData.ageCategory === "Special" && eventData.eventType === "Group"
     
-    if (isSpecialEvent && !isFacultySelfRegistration) {
+    if (isSpecialIndividualEvent && !isFacultySelfRegistration) {
       throw createError({
         statusCode: 400,
         message: "This is a special event for faculty members only",
       })
     }
 
-    if (isSpecialEvent && isFacultySelfRegistration) {
+    if (isSpecialIndividualEvent && isFacultySelfRegistration) {
       // Verify the faculty member exists and belongs to the school
       const [facultyMember] = await db
         .select()
@@ -115,6 +116,74 @@ export default defineEventHandler(async (event) => {
         participantId: registeredByFacultyId,
         participantType: "faculty",
       })
+
+      return {
+        success: true,
+        registrationId,
+        message: "Registration completed successfully",
+      }
+    }
+
+    // Special Group event registration (with faculties as participants)
+    if (isSpecialGroupEvent) {
+      // Fetch all participants (faculties)
+      const participants = await db
+        .select()
+        .from(faculty)
+        .where(inArray(faculty.id, participantIds))
+
+      if (participants.length !== participantIds.length) {
+        throw createError({
+          statusCode: 404,
+          message: "One or more participants not found",
+        })
+      }
+
+      // Validate all participants are from the same school
+      const allFromSameSchool = participants.every((p) => p.schoolId === schoolId)
+      if (!allFromSameSchool) {
+        throw createError({
+          statusCode: 400,
+          message: "All participants must be from the same school",
+        })
+      }
+
+      // Validate team size for group events
+      if (eventData.maxTeamSize) {
+        if (participants.length > eventData.maxTeamSize) {
+          throw createError({
+            statusCode: 400,
+            message: `Team size cannot exceed ${eventData.maxTeamSize} members`,
+          })
+        }
+      }
+
+      if (!teamName) {
+        throw createError({
+          statusCode: 400,
+          message: "Team name is required for group events",
+        })
+      }
+
+      // Create the registration
+      const registrationId = nanoid()
+      await db.insert(registrations).values({
+        id: registrationId,
+        eventId,
+        schoolId,
+        teamName: teamName || null,
+        registeredByFacultyId,
+      })
+
+      // Create participant entries with participantType: "faculty"
+      const participantEntries = participantIds.map((facultyId: string) => ({
+        id: nanoid(),
+        registrationId,
+        participantId: facultyId,
+        participantType: "faculty" as const,
+      }))
+
+      await db.insert(registrationParticipants).values(participantEntries)
 
       return {
         success: true,

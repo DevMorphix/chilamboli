@@ -89,7 +89,7 @@
           </div>
 
           <!-- Step 3: Select Participants -->
-          <div v-if="selectedEvent && !isSpecialEvent">
+          <div v-if="selectedEvent && !isSpecialEvent && !isSpecialGroupEvent">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">
               {{ selectedEvent.eventType === 'Group' ? '3' : '2' }}. Select Participants
             </h3>
@@ -98,7 +98,7 @@
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="Search students by name..."
+                placeholder="Search participants by name..."
                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -142,7 +142,7 @@
               </div>
 
               <div v-if="filteredStudents.length === 0" class="text-center py-8 text-gray-500">
-                No eligible students found
+                No eligible participants found
               </div>
             </div>
 
@@ -152,6 +152,50 @@
                 (Individual event - select 1 student)
               </template>
               <template v-else-if="selectedEvent.maxTeamSize">
+                / {{ selectedEvent.maxTeamSize }} (max)
+              </template>
+            </p>
+          </div>
+
+          <!-- Step 3: Select Faculty Participants (for Special Group events) -->
+          <div v-if="selectedEvent && isSpecialGroupEvent">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">3. Select Faculty Participants</h3>
+            <div class="space-y-2 max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-4">
+              <div
+                v-for="facultyMember in faculties"
+                :key="facultyMember.id"
+                class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer"
+                @click="toggleFaculty(facultyMember)"
+              >
+                <input
+                  type="checkbox"
+                  :checked="selectedFacultyIds.includes(facultyMember.id)"
+                  class="w-4 h-4 text-blue-600"
+                  @click.stop="toggleFaculty(facultyMember)"
+                />
+                <div
+                  class="w-10 h-10 bg-blue-200 rounded-full flex items-center justify-center"
+                >
+                  <span class="text-blue-700 font-semibold">
+                    {{ facultyMember.facultyName.charAt(0).toUpperCase() }}
+                  </span>
+                </div>
+                <div class="flex-1">
+                  <p class="text-sm font-medium text-gray-900">{{ facultyMember.facultyName }}</p>
+                  <p class="text-xs text-gray-500">
+                    {{ facultyMember.mobileNumber }}
+                  </p>
+                </div>
+              </div>
+
+              <div v-if="faculties.length === 0" class="text-center py-8 text-gray-500">
+                No faculty members found
+              </div>
+            </div>
+
+            <p class="text-sm text-gray-600 mt-2">
+              Selected: {{ selectedFacultyIds.length }}
+              <template v-if="selectedEvent.maxTeamSize">
                 / {{ selectedEvent.maxTeamSize }} (max)
               </template>
             </p>
@@ -197,6 +241,7 @@ const { toFullUrl } = useUrl()
 
 const faculty = ref<any>(null)
 const students = ref<any[]>([])
+const faculties = ref<any[]>([])
 const availableEvents = ref<any[]>([])
 const allRegistrations = ref<any[]>([])
 const loading = ref(false)
@@ -208,12 +253,17 @@ const selectedEventId = ref('')
 const selectedEvent = ref<any>(null)
 const teamName = ref('')
 const selectedStudentIds = ref<string[]>([])
+const selectedFacultyIds = ref<string[]>([])
 const searchQuery = ref('')
 const searchResults = ref<any[]>([])
 let searchTimeout: NodeJS.Timeout | null = null
 
 const isSpecialEvent = computed(() => {
   return selectedEvent.value?.ageCategory === 'Special' && selectedEvent.value?.eventType === 'Individual'
+})
+
+const isSpecialGroupEvent = computed(() => {
+  return selectedEvent.value?.ageCategory === 'Special' && selectedEvent.value?.eventType === 'Group'
 })
 
 const filteredStudents = computed(() => {
@@ -237,6 +287,17 @@ const canSubmit = computed(() => {
     return true
   }
   
+  // For special group events, check faculty selection
+  if (isSpecialGroupEvent.value) {
+    if (selectedFacultyIds.value.length === 0) return false
+    if (!teamName.value) return false
+    if (selectedEvent.value.maxTeamSize && selectedFacultyIds.value.length > selectedEvent.value.maxTeamSize) {
+      return false
+    }
+    return true
+  }
+  
+  // Regular events with students
   if (selectedStudentIds.value.length === 0) return false
   
   if (selectedEvent.value.eventType === 'Individual') {
@@ -280,34 +341,47 @@ const loadEvents = async () => {
 const onEventSelect = async () => {
   selectedEvent.value = availableEvents.value.find((e) => e.id === selectedEventId.value)
   selectedStudentIds.value = []
+  selectedFacultyIds.value = []
   teamName.value = ''
   error.value = ''
   searchQuery.value = ''
   searchResults.value = []
   students.value = []
+  faculties.value = []
 
   if (!selectedEvent.value || isSpecialEvent.value) return
 
   try {
-    const params: any = {
-      schoolId: faculty.value.schoolId,
-      sortBy: 'createdAt',
-      sortOrder: 'desc',
-      limit: 100,
-    }
-    if (selectedEvent.value.ageCategory !== 'Combined') {
-      params.ageCategory = selectedEvent.value.ageCategory
-    }
+    if (isSpecialGroupEvent.value) {
+      // Load faculties for Special Group events
+      const [facultiesRes, registrationsRes] = await Promise.all([
+        $fetch(`/api/faculty/by-school?schoolId=${faculty.value.schoolId}&limit=100`),
+        $fetch(`/api/registrations/by-school?schoolId=${faculty.value.schoolId}&sortBy=createdAt&sortOrder=desc`),
+      ])
+      faculties.value = facultiesRes.data || []
+      allRegistrations.value = registrationsRes.data || registrationsRes.registrations || []
+    } else {
+      // Load students for regular events
+      const params: any = {
+        schoolId: faculty.value.schoolId,
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+        limit: 100,
+      }
+      if (selectedEvent.value.ageCategory !== 'Combined') {
+        params.ageCategory = selectedEvent.value.ageCategory
+      }
 
-    const [studentsRes, registrationsRes] = await Promise.all([
-      $fetch(`/api/students/by-school`, { params }),
-      $fetch(`/api/registrations/by-school?schoolId=${faculty.value.schoolId}&sortBy=createdAt&sortOrder=desc`),
-    ])
-    students.value = studentsRes.data || studentsRes.students || []
-    allRegistrations.value = registrationsRes.data || registrationsRes.registrations || []
+      const [studentsRes, registrationsRes] = await Promise.all([
+        $fetch(`/api/students/by-school`, { params }),
+        $fetch(`/api/registrations/by-school?schoolId=${faculty.value.schoolId}&sortBy=createdAt&sortOrder=desc`),
+      ])
+      students.value = studentsRes.data || studentsRes.students || []
+      allRegistrations.value = registrationsRes.data || registrationsRes.registrations || []
+    }
   } catch (err) {
-    console.error('Failed to fetch students:', err)
-    error.value = 'Failed to load students. Please try again.'
+    console.error('Failed to fetch participants:', err)
+    error.value = 'Failed to load participants. Please try again.'
   }
 }
 
@@ -357,6 +431,20 @@ const toggleStudent = (student: any) => {
   }
 }
 
+const toggleFaculty = (facultyMember: any) => {
+  const index = selectedFacultyIds.value.indexOf(facultyMember.id)
+  
+  if (index > -1) {
+    selectedFacultyIds.value.splice(index, 1)
+  } else {
+    if (selectedEvent.value.maxTeamSize && selectedFacultyIds.value.length >= selectedEvent.value.maxTeamSize) {
+      error.value = `Maximum ${selectedEvent.value.maxTeamSize} participants allowed`
+      return
+    }
+    selectedFacultyIds.value.push(facultyMember.id)
+  }
+}
+
 const getStudentRegistrationStatus = (studentId: string) => {
   const studentRegs = allRegistrations.value.filter((r) => {
     // Prefer participantIds if available, otherwise check participants array
@@ -402,7 +490,7 @@ const handleSubmit = async () => {
         eventId: selectedEventId.value,
         schoolId: faculty.value.schoolId,
         teamName: teamName.value || null,
-        participantIds: isSpecialEvent.value ? [] : selectedStudentIds.value,
+        participantIds: isSpecialEvent.value ? [] : (isSpecialGroupEvent.value ? selectedFacultyIds.value : selectedStudentIds.value),
         registeredByFacultyId: faculty.value.id,
         isFacultySelfRegistration: isSpecialEvent.value,
       },
