@@ -190,6 +190,8 @@
 </template>
 
 <script setup lang="ts">
+import { nanoid } from 'nanoid'
+
 const route = useRoute()
 const router = useRouter()
 const { toFullUrl } = useUrl()
@@ -300,14 +302,16 @@ const handleSubmit = async () => {
     
     // Upload new files if provided
     if (photoFile.value) {
-      photoUrl = await uploadFile(photoFile.value, 'photo', `photo_${student.value.id}`)
+      const uniquePhotoId = nanoid()
+      photoUrl = await uploadFile(photoFile.value, 'photo', `photo_${uniquePhotoId}`)
     } else if (photoRemoved.value) {
       // If photo was explicitly removed, set to null
       photoUrl = null
     }
     
     if (certificateFile.value) {
-      certificateUrl = await uploadFile(certificateFile.value, 'certificate', `certificate_${student.value.id}`)
+      const uniqueCertId = nanoid()
+      certificateUrl = await uploadFile(certificateFile.value, 'certificate', `certificate_${uniqueCertId}`)
     } else if (certificateRemoved.value) {
       // If certificate was explicitly removed, set to null
       certificateUrl = null

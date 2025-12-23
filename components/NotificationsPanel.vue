@@ -57,15 +57,15 @@
               v-for="notification in notifications"
               :key="notification.id"
               @click="handleNotificationClick(notification)"
-              class="w-full px-4 py-3 text-left border-b border-gray-100 hover:bg-gray-50 transition-colors"
+              class="w-full p-3 text-left border-b border-gray-100 hover:bg-gray-50 transition-colors"
               :class="{ 
                 'bg-blue-50': !notification.isRead, 
                 'bg-amber-50/50': notification.isImportant
               }"
             >
               <div class="flex items-start gap-3">
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 mb-1">
+                <div class="flex-1 min-w-0 p-3 rounded-lg border border-gray-200">
+                  <div class="flex items-center gap-2 mb-2 justify-between">
                     <h3
                       class="font-medium text-gray-900 truncate"
                       :class="{ 'font-semibold': !notification.isRead || notification.isImportant }"
