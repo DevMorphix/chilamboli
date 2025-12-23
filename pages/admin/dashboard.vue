@@ -234,11 +234,111 @@
             <table class="w-full text-sm">
               <thead class="bg-gray-50 border-b">
                 <tr>
-                  <th class="px-4 py-3 text-left font-medium text-gray-700">School</th>
-                  <th class="px-4 py-3 text-left font-medium text-gray-700">Students</th>
-                  <th class="px-4 py-3 text-left font-medium text-gray-700">Registrations</th>
-                  <th class="px-4 py-3 text-left font-medium text-gray-700">Registration Rate</th>
-                  <th class="px-4 py-3 text-left font-medium text-gray-700">Verified Faculty</th>
+                  <th 
+                    @click="handleSort('schoolName')"
+                    class="px-4 py-3 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none transition-colors group"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span>School</span>
+                      <span v-if="sortColumn === 'schoolName'" class="text-blue-600">
+                        <svg v-if="sortDirection === 'asc'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                        </svg>
+                        <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </span>
+                      <span v-else class="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
+                      </span>
+                    </div>
+                  </th>
+                  <th 
+                    @click="handleSort('students')"
+                    class="px-4 py-3 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none transition-colors group"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span>Students</span>
+                      <span v-if="sortColumn === 'students'" class="text-blue-600">
+                        <svg v-if="sortDirection === 'asc'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                        </svg>
+                        <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </span>
+                      <span v-else class="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
+                      </span>
+                    </div>
+                  </th>
+                  <th 
+                    @click="handleSort('registrations')"
+                    class="px-4 py-3 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none transition-colors group"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span>Registrations</span>
+                      <span v-if="sortColumn === 'registrations'" class="text-blue-600">
+                        <svg v-if="sortDirection === 'asc'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                        </svg>
+                        <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </span>
+                      <span v-else class="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
+                      </span>
+                    </div>
+                  </th>
+                  <th 
+                    @click="handleSort('registrationRate')"
+                    class="px-4 py-3 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none transition-colors group"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span>Registration Rate</span>
+                      <span v-if="sortColumn === 'registrationRate'" class="text-blue-600">
+                        <svg v-if="sortDirection === 'asc'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                        </svg>
+                        <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </span>
+                      <span v-else class="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
+                      </span>
+                    </div>
+                  </th>
+                  <th 
+                    @click="handleSort('verifiedFaculty')"
+                    class="px-4 py-3 text-left font-medium text-gray-700 cursor-pointer hover:bg-gray-100 select-none transition-colors group"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span>Verified Faculty</span>
+                      <span v-if="sortColumn === 'verifiedFaculty'" class="text-blue-600">
+                        <svg v-if="sortDirection === 'asc'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                        </svg>
+                        <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </span>
+                      <span v-else class="text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
+                      </span>
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200">
@@ -262,12 +362,29 @@
               </tbody>
             </table>
           </div>
-          <!-- Pagination -->
-          <div v-if="totalPages > 1" class="mt-4 flex items-center justify-between">
-            <div class="text-sm text-gray-700">
-              Showing {{ (currentPage - 1) * pageSize + 1 }} to {{ Math.min(currentPage * pageSize, totalSchools) }} of {{ totalSchools }} schools
+          <!-- Pagination and Page Size -->
+          <div class="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-4 flex-wrap">
+              <div class="text-sm text-gray-700">
+                Showing {{ (currentPage - 1) * pageSize + 1 }} to {{ Math.min(currentPage * pageSize, totalSchools) }} of {{ totalSchools }} schools
+              </div>
             </div>
             <div class="flex items-center gap-2">
+              <label for="pageSize" class="text-sm text-gray-700">Show:</label>
+              <select
+                id="pageSize"
+                v-model.number="pageSize"
+                @change="currentPage = 1"
+                class="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option :value="10">10</option>
+                <option :value="25">25</option>
+                <option :value="50">50</option>
+                <option :value="100">100</option>
+                <option :value="9999">All</option>
+              </select>
+            </div>
+            <div v-if="totalPages > 1 && !isShowingAll" class="flex items-center gap-2">
               <button
                 @click="currentPage = Math.max(1, currentPage - 1)"
                 :disabled="currentPage === 1"
@@ -371,16 +488,77 @@ const showPurgeModal = ref(false)
 const analytics = ref<any>({})
 const currentPage = ref(1)
 const pageSize = ref(10)
+const sortColumn = ref<string | null>(null)
+const sortDirection = ref<'asc' | 'desc'>('desc')
+
+// Sorting function
+const handleSort = (column: string) => {
+  if (sortColumn.value === column) {
+    // Toggle direction if same column
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    // New column, default to descending
+    sortColumn.value = column
+    sortDirection.value = 'desc'
+  }
+  // Reset to first page when sorting changes
+  currentPage.value = 1
+}
 
 // Pagination for School Performance Breakdown
 const schoolsWithData = computed(() => {
-  return analytics.value.breakdowns?.schoolPerformance || []
+  const schools = analytics.value.breakdowns?.schoolPerformance || []
+  
+  if (!sortColumn.value) {
+    return schools
+  }
+  
+  // Create a sorted copy
+  const sorted = [...schools].sort((a, b) => {
+    let aValue: any
+    let bValue: any
+    
+    switch (sortColumn.value) {
+      case 'schoolName':
+        aValue = a.schoolName?.toLowerCase() || ''
+        bValue = b.schoolName?.toLowerCase() || ''
+        break
+      case 'students':
+        aValue = a.students || 0
+        bValue = b.students || 0
+        break
+      case 'registrations':
+        aValue = a.registrations || 0
+        bValue = b.registrations || 0
+        break
+      case 'registrationRate':
+        aValue = a.registrationRate || 0
+        bValue = b.registrationRate || 0
+        break
+      case 'verifiedFaculty':
+        aValue = a.verifiedFaculty || 0
+        bValue = b.verifiedFaculty || 0
+        break
+      default:
+        return 0
+    }
+    
+    if (aValue < bValue) return sortDirection.value === 'asc' ? -1 : 1
+    if (aValue > bValue) return sortDirection.value === 'asc' ? 1 : -1
+    return 0
+  })
+  
+  return sorted
 })
 
 const totalSchools = computed(() => schoolsWithData.value.length)
-const totalPages = computed(() => Math.ceil(totalSchools.value / pageSize.value))
+const isShowingAll = computed(() => pageSize.value >= totalSchools.value)
+const totalPages = computed(() => isShowingAll.value ? 1 : Math.ceil(totalSchools.value / pageSize.value))
 
 const paginatedSchools = computed(() => {
+  if (isShowingAll.value) {
+    return schoolsWithData.value
+  }
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
   return schoolsWithData.value.slice(start, end)
