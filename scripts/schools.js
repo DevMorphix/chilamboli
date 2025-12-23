@@ -204,6 +204,11 @@ export default [
     "schoolCode": "AID02_024",
     "location": "Ernakulam"
   },
+  {
+    "name": " Nirmalagiri  Vocational Rehabilitation Centre, Madavoor,Muvattupuzha",
+    "schoolCode": "AID02_025",
+    "location": "Ernakulam"
+  }
 
 
 
