@@ -126,11 +126,41 @@ export const registrationParticipants = sqliteTable("registration_participants",
     .$onUpdateFn(() => new Date()),
 })
 
+// Notifications table - stores notification content
+export const notifications = sqliteTable("notifications", {
+  id: text("id").primaryKey(),
+  schoolId: text("school_id")
+    .references(() => schools.id, { onDelete: "cascade" }), // Optional - null for common notifications, specific school ID for school-specific
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  isImportant: integer("is_important", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+})
+
+// Notification recipients table - tracks which schools have received/viewed each notification
+export const notificationRecipients = sqliteTable("notification_recipients", {
+  id: text("id").primaryKey(),
+  notificationId: text("notification_id")
+    .notNull()
+    .references(() => notifications.id, { onDelete: "cascade" }),
+  schoolId: text("school_id")
+    .notNull()
+    .references(() => schools.id, { onDelete: "cascade" }),
+  isRead: integer("is_read", { mode: "boolean" }).notNull().default(false),
+  viewedAt: integer("viewed_at", { mode: "timestamp" }), // When the notification was first viewed by any faculty from this school
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+})
+
 // Relations
 export const schoolsRelations = relations(schools, ({ many }) => ({
   faculty: many(faculty),
   students: many(students),
   registrations: many(registrations),
+  notificationRecipients: many(notificationRecipients),
 }))
 
 export const authRelations = relations(auth, ({ one }) => ({
@@ -153,6 +183,7 @@ export const facultyRelations = relations(faculty, ({ one, many }) => ({
   }),
   students: many(students),
   registrations: many(registrations),
+  notificationRecipients: many(notificationRecipients),
 }))
 
 export const studentsRelations = relations(students, ({ one, many }) => ({
@@ -196,6 +227,25 @@ export const registrationParticipantsRelations = relations(registrationParticipa
   // These are defined for type safety but actual joins should be done in queries
 }))
 
+export const notificationsRelations = relations(notifications, ({ one, many }) => ({
+  school: one(schools, {
+    fields: [notifications.schoolId],
+    references: [schools.id],
+  }),
+  recipients: many(notificationRecipients),
+}))
+
+export const notificationRecipientsRelations = relations(notificationRecipients, ({ one }) => ({
+  notification: one(notifications, {
+    fields: [notificationRecipients.notificationId],
+    references: [notifications.id],
+  }),
+  school: one(schools, {
+    fields: [notificationRecipients.schoolId],
+    references: [schools.id],
+  }),
+}))
+
 // Type exports
 export type School = typeof schools.$inferSelect
 export type NewSchool = typeof schools.$inferInsert
@@ -211,3 +261,5 @@ export type Registration = typeof registrations.$inferSelect
 export type NewRegistration = typeof registrations.$inferInsert
 export type RegistrationParticipant = typeof registrationParticipants.$inferSelect
 export type NewRegistrationParticipant = typeof registrationParticipants.$inferInsert
+export type Notification = typeof notifications.$inferSelect
+export type NewNotification = typeof notifications.$inferInsert

@@ -810,6 +810,11 @@ export default [
     "schoolCode": "AID09_023",
     "location": "Malappuram"
   },
+  {
+    "name": "V.K.M Vocational Training Institute, Valanchery",
+    "schoolCode": "AID09_024",
+    "location": "Malappuram"
+  },
 
 
 
@@ -1039,6 +1044,11 @@ export default [
   {
     "name": "Tropical Health Foundation of India Special School, Guruvayur",
     "schoolCode": "AID12_024",
+    "location": "Thrissur"
+  },
+  {
+    "name": "Asrayabhavan Training Centre Pariyaram, Chalakudy",
+    "schoolCode": "AID12_025",
     "location": "Thrissur"
   },
 

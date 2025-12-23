@@ -1,8 +1,8 @@
 import { useDB } from "../../utils/db"
-import { faculty, schools, auth } from "../../database/schema"
+import { faculty, schools, auth, notifications, notificationRecipients } from "../../database/schema"
 import { storeOtp, generateOtp } from "../../utils/kv"
 import { sendOtpEmail } from "../../utils/email"
-import { eq } from "drizzle-orm"
+import { eq, isNull, and } from "drizzle-orm"
 import { nanoid } from "nanoid"
 import bcrypt from "bcryptjs"
 
@@ -104,6 +104,34 @@ export default defineEventHandler(async (event) => {
       userType: "faculty",
       userId: id,
     })
+
+    // When a new faculty is created, ensure recipients exist for common notifications for this school
+    const commonNotifications = await db
+      .select()
+      .from(notifications)
+      .where(isNull(notifications.schoolId))
+
+    for (const notification of commonNotifications) {
+      const [existingRecipient] = await db
+        .select()
+        .from(notificationRecipients)
+        .where(
+          and(
+            eq(notificationRecipients.notificationId, notification.id),
+            eq(notificationRecipients.schoolId, schoolId)
+          )
+        )
+        .limit(1)
+
+      if (!existingRecipient) {
+        await db.insert(notificationRecipients).values({
+          id: nanoid(),
+          notificationId: notification.id,
+          schoolId: schoolId,
+          isRead: false,
+        })
+      }
+    }
 
     // Generate and store OTP in KV Store
     const otp = generateOtp()

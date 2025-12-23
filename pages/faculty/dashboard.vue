@@ -15,6 +15,27 @@
               <p class="text-xs sm:text-sm font-medium text-gray-900 truncate">{{ faculty?.facultyName }}</p>
               <p class="text-xs text-gray-500 truncate hidden sm:block">{{ faculty?.schoolEmail }}</p>
             </div>
+            <!-- Notifications Icon -->
+            <button
+              @click="showNotifications = true"
+              class="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors flex-shrink-0"
+              :class="{ 'animate-shake': unreadCount > 0 }"
+              aria-label="Notifications"
+            >
+              <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                />
+              </svg>
+              <span
+                v-if="unreadCount > 0"
+                class="absolute top-1 right-1 block h-2.5 w-2.5 rounded-full bg-red-600 ring-2 ring-white"
+                aria-label="Unread notifications"
+              ></span>
+            </button>
             <button
               @click="handleLogout"
               class="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors border border-red-500 whitespace-nowrap flex-shrink-0"
@@ -197,8 +218,36 @@
 
     <!-- Support Modal -->
     <SupportModal v-model="showSupport" />
+
+    <!-- Notifications Panel -->
+    <NotificationsPanel v-model="showNotifications" :faculty-id="faculty?.id || null" />
+
+    <!-- Important Notification Modal (auto-opens on login) -->
+    <NotificationDetailModal
+      v-model="showImportantModal"
+      :notification="importantNotification"
+      @read="handleImportantNotificationRead"
+    />
   </div>
 </template>
+
+<style scoped>
+@keyframes shake {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: rotate(-15deg);
+  }
+  20%, 40%, 60%, 80% {
+    transform: rotate(15deg);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out infinite;
+}
+</style>
 
 <script setup lang="ts">
 const router = useRouter()
@@ -209,6 +258,10 @@ const loading = ref(true)
 const recentStudents = ref<any[]>([])
 const registrations = ref<any[]>([])
 const showSupport = ref(false)
+const showNotifications = ref(false)
+const unreadCount = ref(0)
+const importantNotification = ref<any>(null)
+const showImportantModal = ref(false)
 
 const stats = ref({
   totalStudents: 0,
@@ -225,6 +278,9 @@ onMounted(async () => {
   }
 
   faculty.value = JSON.parse(storedFaculty)
+
+  // Fetch notifications count
+  fetchUnreadCount()
 
   // Fetch data - recent items sorted by createdAt desc
   try {
@@ -264,4 +320,47 @@ const handleLogout = () => {
   localStorage.removeItem('faculty')
   router.push('/faculty/login')
 }
+
+const fetchUnreadCount = async () => {
+  if (!faculty.value?.id) return
+
+  try {
+    const response = await $fetch<{ success: boolean; data: any[] }>(
+      `/api/notifications?facultyId=${faculty.value.id}`
+    )
+    const notifications = response.data || []
+    unreadCount.value = notifications.filter((n: any) => !n.isRead).length
+    
+    // Check for important unread notifications and auto-open the first one
+    const importantUnread = notifications.find((n: any) => !n.isRead && n.isImportant)
+    if (importantUnread) {
+      importantNotification.value = importantUnread
+      // Small delay to ensure UI is ready
+      setTimeout(() => {
+        showImportantModal.value = true
+      }, 500)
+    }
+  } catch (error) {
+    console.error('Failed to fetch notifications count:', error)
+  }
+}
+
+// Watch for notifications panel close to refresh count
+watch(showNotifications, (isOpen) => {
+  if (!isOpen) {
+    fetchUnreadCount()
+  }
+})
+
+const handleImportantNotificationRead = () => {
+  // Refetch notifications count when important notification is marked as read
+  fetchUnreadCount()
+}
+
+// Watch for important modal close to refresh count
+watch(showImportantModal, (isOpen) => {
+  if (!isOpen) {
+    fetchUnreadCount()
+  }
+})
 </script>
