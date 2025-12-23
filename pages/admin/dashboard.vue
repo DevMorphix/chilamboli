@@ -391,21 +391,49 @@ const activityTrendsSeries = computed(() => {
   const registrations = analytics.value.trends?.registrations || []
   const students = analytics.value.trends?.students || []
   
+  // Merge all unique dates from both series and sort chronologically
+  const allDates = new Set<string>()
+  registrations.forEach((t: any) => allDates.add(t.date))
+  students.forEach((t: any) => allDates.add(t.date))
+  
+  const sortedDates = Array.from(allDates).sort((a, b) => {
+    return new Date(a).getTime() - new Date(b).getTime()
+  })
+  
+  // Create lookup maps for O(1) access
+  const registrationsMap = new Map(registrations.map((t: any) => [t.date, t.count]))
+  const studentsMap = new Map(students.map((t: any) => [t.date, t.count]))
+  
+  // Map counts for each date (0 if date doesn't exist in that series)
+  const registrationData = sortedDates.map(date => registrationsMap.get(date) || 0)
+  const studentData = sortedDates.map(date => studentsMap.get(date) || 0)
+  
   return [
     {
       name: 'Registrations',
-      data: registrations.map((t: any) => t.count),
+      data: registrationData,
     },
     {
       name: 'New Students',
-      data: students.map((t: any) => t.count),
+      data: studentData,
     },
   ]
 })
 
 const activityTrendsChartOptions = computed(() => {
   const registrations = analytics.value.trends?.registrations || []
-  if (registrations.length === 0) return null
+  const students = analytics.value.trends?.students || []
+  
+  // Merge all unique dates from both series and sort chronologically
+  const allDates = new Set<string>()
+  registrations.forEach((t: any) => allDates.add(t.date))
+  students.forEach((t: any) => allDates.add(t.date))
+  
+  const sortedDates = Array.from(allDates).sort((a, b) => {
+    return new Date(a).getTime() - new Date(b).getTime()
+  })
+  
+  if (sortedDates.length === 0) return null
 
   return {
     chart: {
@@ -421,9 +449,9 @@ const activityTrendsChartOptions = computed(() => {
     },
     colors: ['#9333ea', '#3b82f6'],
     xaxis: {
-      categories: registrations.map((t: any) => {
-        const date = new Date(t.date)
-        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+      categories: sortedDates.map((date) => {
+        const dateObj = new Date(date)
+        return dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
       }),
       labels: {
         style: { fontSize: '12px' },
