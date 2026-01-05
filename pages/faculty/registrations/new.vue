@@ -316,6 +316,8 @@ const canSubmit = computed(() => {
 
 onMounted(async () => {
   const storedFaculty = localStorage.getItem('faculty')
+
+  // router.push('/faculty/dashboard')
   if (!storedFaculty) {
     router.push('/faculty/login')
     return

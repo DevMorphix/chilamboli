@@ -208,7 +208,12 @@ export default [
     "name": " Nirmalagiri  Vocational Rehabilitation Centre, Madavoor,Muvattupuzha",
     "schoolCode": "AID02_025",
     "location": "Ernakulam"
-  }
+  },
+  {
+    "name": "St. Joseph Fathima Vocational Training Centre, Koonammavu",
+    "schoolCode": "AID02_026",
+    "location": "Ernakulam"
+  },
 
 
 
@@ -584,6 +589,11 @@ export default [
     "schoolCode": "AID07_024",
     "location": "Kottayam"
   },
+  {
+    "name": "Sevanikethan Thiruhrudaya Nivas school,Kottayam",
+    "schoolCode": "AID07_025",
+    "location": "Kottayam"
+  },
 
 
 
@@ -873,6 +883,11 @@ export default [
   {
     "name": "St. Dominic's Special School for Mentally Challenged, Mannarkkad",
     "schoolCode": "AID10_010",
+    "location": "Palakkad"
+  },
+  {
+    "name": "Faith India Vocational Rehabilitation Centre, Bheemanad",
+    "schoolCode": "AID10_11",
     "location": "Palakkad"
   },
 
