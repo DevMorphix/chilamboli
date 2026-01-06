@@ -10,10 +10,9 @@
             </NuxtLink>
             <h1 class="text-2xl font-bold text-gray-900">Event Registrations</h1>
           </div>
-          <!-- px-4 py-2 bg-gray-400 text-gray-200  cursor-not-allowed pointer-events-none opacity-60 rounded-md font-medium transition-colors disabled -->
           <NuxtLink
             to="/faculty/registrations/new"
-            class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium transition-colors "
+            class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium transition-colors"
           >
             + New Registration
           </NuxtLink>

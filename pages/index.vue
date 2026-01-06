@@ -39,10 +39,10 @@
           <!-- Status Badge -->
           <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-semibold mb-8 animate-fade-in">
             <span class="relative flex h-2.5 w-2.5">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-500 opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-gray-800"></span>
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
             </span>
-            <span>Registrations opend</span>
+            <span>Registrations Open</span>
           </div>
 
           <!-- Logo with Animation -->
@@ -85,7 +85,7 @@
           </div>
 
           <!-- Info Text -->
-          <!-- <p class="text-sm gap-3 flex justify-center text-muted-foreground animate-fade-in-up" style="animation-delay: 0.5s;">
+          <p class="text-sm gap-3 flex justify-center text-muted-foreground animate-fade-in-up" style="animation-delay: 0.5s;">
             New faculty member? 
             <NuxtLink 
               to="/faculty/register" 
@@ -93,7 +93,7 @@
             >
               Register here
             </NuxtLink>
-          </p> -->
+          </p>
         </div>
       </main>
 
