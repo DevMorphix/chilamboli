@@ -50,7 +50,7 @@
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 w-full">
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
         <div class="bg-white rounded-lg shadow p-4 sm:p-6">
           <div class="flex items-center justify-between">
             <div class="flex-1 min-w-0">
@@ -93,7 +93,7 @@
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-4 sm:p-6 sm:col-span-2 md:col-span-1">
+        <div class="bg-white rounded-lg shadow p-4 sm:p-6">
           <div class="flex items-center justify-between">
             <div class="flex-1 min-w-0">
               <p class="text-xs sm:text-sm font-medium text-gray-600">School Code</p>
