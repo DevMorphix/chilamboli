@@ -3,6 +3,32 @@ import { events, students, registrations, registrationParticipants, faculty } fr
 import { eq, inArray, and } from "drizzle-orm"
 import { nanoid } from "nanoid"
 
+// Batch arrays to avoid SQLite's 999 variable limit
+function chunkArray<T>(array: T[], chunkSize: number = 500): T[][] {
+  const chunks: T[][] = []
+  for (let i = 0; i < array.length; i += chunkSize) {
+    chunks.push(array.slice(i, i + chunkSize))
+  }
+  return chunks
+}
+
+// Batch SELECT queries with inArray to avoid SQLite limits
+async function batchSelect<T>(
+  db: ReturnType<typeof useDB>,
+  table: any,
+  column: any,
+  ids: string[]
+): Promise<T[]> {
+  if (ids.length === 0) return []
+  
+  const results: T[] = []
+  for (const chunk of chunkArray(ids, 500)) {
+    const chunkResults = await db.select().from(table).where(inArray(column, chunk))
+    results.push(...chunkResults)
+  }
+  return results
+}
+
 export default defineEventHandler(async (event) => {
   const db = useDB(event)
   const id = event.context.params?.id
@@ -64,23 +90,14 @@ export default defineEventHandler(async (event) => {
     // Check if this is a special group event (faculty participants)
     const isSpecialGroupEvent = eventData.ageCategory === "Special" && eventData.eventType === "Group"
 
-    // Fetch all participants (students or faculty based on event type)
     let participants: any[] = []
     let participantType: "student" | "faculty" = "student"
 
     if (isSpecialGroupEvent) {
-      // For special group events, participants are faculty members
-      participants = await db
-        .select()
-        .from(faculty)
-        .where(inArray(faculty.id, participantIds))
+      participants = await batchSelect(db, faculty, faculty.id, participantIds)
       participantType = "faculty"
     } else {
-      // For regular events, participants are students
-      participants = await db
-        .select()
-        .from(students)
-        .where(inArray(students.id, participantIds))
+      participants = await batchSelect(db, students, students.id, participantIds)
       participantType = "student"
     }
 
@@ -139,13 +156,10 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Check participation limits for each participant
-    // Rule: 1 Individual + 1 Group (+ Fashion Show special, + Combined not counted)
-    // But exclude the current registration when checking
-    // Note: This validation only applies to students, not faculty
+    // Validate participation limits: 1 Individual + 1 Group per student
+    // (Combined events and Fashion Show don't count)
     if (!isSpecialGroupEvent) {
       for (const participant of participants) {
-        // Find all registrations this participant is part of
         const participantRegistrations = await db
           .select()
           .from(registrationParticipants)
@@ -156,93 +170,77 @@ export default defineEventHandler(async (event) => {
             )
           )
 
-      const existingRegIds = participantRegistrations
-        .map((pr) => pr.registrationId)
-        .filter((regId) => regId !== id) // Exclude current registration
+        const existingRegIds = participantRegistrations
+          .map((pr) => pr.registrationId)
+          .filter((regId) => regId !== id)
 
-      if (existingRegIds.length === 0) continue
+        if (existingRegIds.length === 0) continue
 
-      const existingRegs = await db
-        .select()
-        .from(registrations)
-        .where(inArray(registrations.id, existingRegIds))
-
-      // Count registrations by type
-      let individualCount = 0
-      let groupCount = 0
-
-      for (const reg of existingRegs) {
-        const [regEvent] = await db
-          .select()
-          .from(events)
-          .where(eq(events.id, reg.eventId))
-          .limit(1)
-
-        if (!regEvent) continue
-
-        // Skip combined category events - they don't count toward limit
-        if (regEvent.ageCategory === "Combined") continue
-
-        // Skip Fashion Show - it's a special exception
-        if (regEvent.name === "Fashion Show") continue
-
-        if (regEvent.eventType === "Individual") {
-          individualCount++
-        } else if (regEvent.eventType === "Group") {
-          groupCount++
-        }
-      }
-
-      // Validate against current event type (if not Combined or Fashion Show)
-      if (eventData.ageCategory !== "Combined" && eventData.name !== "Fashion Show") {
-        if (eventData.eventType === "Individual" && individualCount >= 1) {
-          throw createError({
-            statusCode: 400,
-            message: `${participant.studentName} has already registered for an individual event`,
-          })
+        const existingRegs = await batchSelect(db, registrations, registrations.id, existingRegIds)
+        const eventIds = [...new Set(existingRegs.map(reg => reg.eventId))]
+        const eventMap = new Map<string, any>()
+        
+        for (const chunk of chunkArray(eventIds, 500)) {
+          const eventsData = await db.select().from(events).where(inArray(events.id, chunk))
+          eventsData.forEach(evt => eventMap.set(evt.id, evt))
         }
 
-        if (eventData.eventType === "Group" && groupCount >= 1) {
-          throw createError({
-            statusCode: 400,
-            message: `${participant.studentName} has already registered for a group event`,
-          })
+        let individualCount = 0
+        let groupCount = 0
+
+        for (const reg of existingRegs) {
+          const regEvent = eventMap.get(reg.eventId)
+          if (!regEvent || regEvent.ageCategory === "Combined" || regEvent.name === "Fashion Show") {
+            continue
+          }
+          if (regEvent.eventType === "Individual") individualCount++
+          else if (regEvent.eventType === "Group") groupCount++
+        }
+
+        if (eventData.ageCategory !== "Combined" && eventData.name !== "Fashion Show") {
+          if (eventData.eventType === "Individual" && individualCount >= 1) {
+            throw createError({
+              statusCode: 400,
+              message: `${participant.studentName} has already registered for an individual event`,
+            })
+          }
+          if (eventData.eventType === "Group" && groupCount >= 1) {
+            throw createError({
+              statusCode: 400,
+              message: `${participant.studentName} has already registered for a group event`,
+            })
+          }
         }
       }
     }
-    }
 
-    // Update the registration
-    const updateData: Partial<typeof registrations.$inferInsert> = {}
-    if (teamName !== undefined) {
-      updateData.teamName = teamName || null
-    }
+    // Transaction ensures atomicity - all operations succeed or all fail
+    return await db.transaction(async (tx) => {
+      const updateData: Partial<typeof registrations.$inferInsert> = {}
+      if (teamName !== undefined) {
+        updateData.teamName = teamName || null
+      }
 
-    await db
-      .update(registrations)
-      .set(updateData)
-      .where(eq(registrations.id, id))
+      await tx.update(registrations).set(updateData).where(eq(registrations.id, id))
+      await tx.delete(registrationParticipants).where(eq(registrationParticipants.registrationId, id))
 
-    // Delete existing participants
-    await db
-      .delete(registrationParticipants)
-      .where(eq(registrationParticipants.registrationId, id))
+      const participantEntries = participantIds.map((participantId: string) => ({
+        id: nanoid(),
+        registrationId: id,
+        participantId: participantId,
+        participantType: participantType,
+      }))
 
-    // Create new participant entries in the junction table
-    const participantEntries = participantIds.map((participantId: string) => ({
-      id: nanoid(),
-      registrationId: id,
-      participantId: participantId,
-      participantType: participantType,
-    }))
+      for (const chunk of chunkArray(participantEntries, 200)) {
+        await tx.insert(registrationParticipants).values(chunk)
+      }
 
-    await db.insert(registrationParticipants).values(participantEntries)
-
-    return {
-      success: true,
-      registrationId: id,
-      message: "Registration updated successfully",
-    }
+      return {
+        success: true,
+        registrationId: id,
+        message: "Registration updated successfully",
+      }
+    })
   } catch (error: any) {
     console.error("Error updating registration:", error)
 

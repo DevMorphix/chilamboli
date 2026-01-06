@@ -437,7 +437,7 @@ const handleSubmit = async () => {
 
   try {
     await $fetch(`/api/registrations/${registrationId}`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: {
         teamName: teamName.value || null,
         participantIds: isSpecialGroupEvent.value ? selectedFacultyIds.value : selectedStudentIds.value,
