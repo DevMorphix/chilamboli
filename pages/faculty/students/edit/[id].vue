@@ -159,6 +159,59 @@
             </div>
           </div>
 
+          <!-- Birth Certificate Upload -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Birth Certificate
+            </label>
+            <div class="mt-2">
+              <input
+                ref="birthCertificateInput"
+                type="file"
+                accept="application/pdf,image/jpeg,image/jpg,image/png"
+                @change="handleBirthCertificateChange"
+                class="hidden"
+              />
+              <div v-if="!birthCertificateFile && !existingBirthCertificateUrl" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors" @click="$refs.birthCertificateInput.click()">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p class="mt-2 text-sm text-gray-600">Click to upload birth certificate</p>
+                <p class="text-xs text-gray-500 mt-1">PDF or Image (Max 5MB)</p>
+              </div>
+              <div v-else class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+                <svg v-if="!birthCertificateFile" class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <div class="flex-1">
+                  <p class="text-sm font-medium text-gray-900">
+                    {{ birthCertificateFile ? birthCertificateFile.name : 'Existing birth certificate' }}
+                  </p>
+                  <p v-if="birthCertificateFile" class="text-xs text-gray-500">{{ (birthCertificateFile.size / 1024).toFixed(2) }} KB</p>
+                  <a v-else-if="existingBirthCertificateUrl" :href="existingBirthCertificateUrl" target="_blank" class="text-xs text-blue-600 hover:text-blue-700">View certificate</a>
+                </div>
+                <button
+                  type="button"
+                  @click="removeBirthCertificate"
+                  class="text-red-500 hover:text-red-600"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  @click="$refs.birthCertificateInput.click()"
+                  class="text-blue-500 hover:text-blue-600"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- Error Message -->
           <div v-if="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
             {{ error }}
@@ -216,6 +269,9 @@ const photoRemoved = ref(false)
 const certificateFile = ref<File | null>(null)
 const existingCertificateUrl = ref<string | null>(null)
 const certificateRemoved = ref(false)
+const birthCertificateFile = ref<File | null>(null)
+const existingBirthCertificateUrl = ref<string | null>(null)
+const birthCertificateRemoved = ref(false)
 
 onMounted(async () => {
   const storedFaculty = localStorage.getItem('faculty')
@@ -237,6 +293,7 @@ onMounted(async () => {
       }
       existingPhotoUrl.value = student.value.photoUrl ? toFullUrl(student.value.photoUrl) : null
       existingCertificateUrl.value = student.value.disabilityCertificateUrl ? toFullUrl(student.value.disabilityCertificateUrl) : null
+      existingBirthCertificateUrl.value = student.value.birthCertificateUrl ? toFullUrl(student.value.birthCertificateUrl) : null
     } else {
       error.value = 'Student not found'
     }
@@ -280,6 +337,21 @@ const removeCertificate = () => {
   existingCertificateUrl.value = null
 }
 
+const handleBirthCertificateChange = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (file) {
+    birthCertificateFile.value = file
+    birthCertificateRemoved.value = false
+  }
+}
+
+const removeBirthCertificate = () => {
+  birthCertificateFile.value = null
+  birthCertificateRemoved.value = true
+  existingBirthCertificateUrl.value = null
+}
+
 const uploadFile = async (file: File, folder: string, filename: string): Promise<string> => {
   const formData = new FormData()
   formData.append('file', file)
@@ -299,6 +371,7 @@ const handleSubmit = async () => {
   try {
     let photoUrl: string | null | undefined = undefined
     let certificateUrl: string | null | undefined = undefined
+    let birthCertificateUrl: string | null | undefined = undefined
     
     // Upload new files if provided
     if (photoFile.value) {
@@ -316,6 +389,14 @@ const handleSubmit = async () => {
       // If certificate was explicitly removed, set to null
       certificateUrl = null
     }
+    
+    if (birthCertificateFile.value) {
+      const uniqueBirthCertId = nanoid()
+      birthCertificateUrl = await uploadFile(birthCertificateFile.value, 'birth-certificate', `birth_certificate_${uniqueBirthCertId}`)
+    } else if (birthCertificateRemoved.value) {
+      // If birth certificate was explicitly removed, set to null
+      birthCertificateUrl = null
+    }
 
     const updateBody: any = {
       studentId: student.value.id,
@@ -330,6 +411,9 @@ const handleSubmit = async () => {
     }
     if (certificateUrl !== undefined) {
       updateBody.disabilityCertificateUrl = certificateUrl
+    }
+    if (birthCertificateUrl !== undefined) {
+      updateBody.birthCertificateUrl = birthCertificateUrl
     }
 
     await $fetch('/api/students/update', {

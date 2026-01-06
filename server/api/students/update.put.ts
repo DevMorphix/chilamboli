@@ -29,6 +29,7 @@ export default defineEventHandler(async (event) => {
     gender,
     photoUrl,
     disabilityCertificateUrl,
+    birthCertificateUrl,
   } = body
 
   if (!studentId) {
@@ -64,6 +65,7 @@ export default defineEventHandler(async (event) => {
     if (gender !== undefined) updateData.gender = gender
     if (photoUrl !== undefined) updateData.photoUrl = photoUrl
     if (disabilityCertificateUrl !== undefined) updateData.disabilityCertificateUrl = disabilityCertificateUrl
+    if (birthCertificateUrl !== undefined) updateData.birthCertificateUrl = birthCertificateUrl
 
     const [updatedStudent] = await db
       .update(students)

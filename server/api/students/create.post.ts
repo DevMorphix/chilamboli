@@ -31,6 +31,7 @@ export default defineEventHandler(async (event) => {
     gender,
     photoUrl,
     disabilityCertificateUrl,
+    birthCertificateUrl,
     schoolId,
     addedByFacultyId,
   } = body
@@ -58,6 +59,7 @@ export default defineEventHandler(async (event) => {
         gender,
         photoUrl,
         disabilityCertificateUrl,
+        birthCertificateUrl,
         schoolId,
         addedByFacultyId,
       })

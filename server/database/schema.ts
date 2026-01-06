@@ -58,6 +58,7 @@ export const students = sqliteTable("students", {
   gender: text("gender", { enum: ["male", "female", "others"] }).notNull(),
   photoUrl: text("photo_url"),
   disabilityCertificateUrl: text("disability_certificate_url"),
+  birthCertificateUrl: text("birth_certificate_url"),
   schoolId: text("school_id")
     .notNull()
     .references(() => schools.id),

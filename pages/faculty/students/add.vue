@@ -145,6 +145,51 @@
             </div>
           </div>
 
+          <!-- Birth Certificate Upload -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Birth Certificate
+            </label>
+            <div class="mt-2">
+              <input
+                ref="birthCertificateInput"
+                type="file"
+                accept="application/pdf,image/jpeg,image/jpg,image/png"
+                @change="handleBirthCertificateChange"
+                class="hidden"
+              />
+              <div
+                v-if="!birthCertificateFile"
+                @click="$refs.birthCertificateInput.click()"
+                class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors"
+              >
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p class="mt-2 text-sm text-gray-600">Click to upload birth certificate</p>
+                <p class="text-xs text-gray-500 mt-1">PDF or Image (Max 5MB)</p>
+              </div>
+              <div v-else class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+                <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <div class="flex-1">
+                  <p class="text-sm font-medium text-gray-900">{{ birthCertificateFile.name }}</p>
+                  <p class="text-xs text-gray-500">{{ (birthCertificateFile.size / 1024).toFixed(2) }} KB</p>
+                </div>
+                <button
+                  type="button"
+                  @click="removeBirthCertificate"
+                  class="text-red-500 hover:text-red-600"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- Error Message -->
           <div v-if="error" class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
             {{ error }}
@@ -193,6 +238,7 @@ const formData = ref({
 const photoFile = ref<File | null>(null)
 const photoPreview = ref<string>('')
 const certificateFile = ref<File | null>(null)
+const birthCertificateFile = ref<File | null>(null)
 
 const calculatedCategory = computed(() => {
   if (!formData.value.dateOfBirth) return ''
@@ -241,6 +287,18 @@ const removeCertificate = () => {
   certificateFile.value = null
 }
 
+const handleBirthCertificateChange = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (file) {
+    birthCertificateFile.value = file
+  }
+}
+
+const removeBirthCertificate = () => {
+  birthCertificateFile.value = null
+}
+
 const uploadFile = async (file: File, folder: string, filename: string): Promise<string> => {
   const formData = new FormData()
   formData.append('file', file)
@@ -264,6 +322,7 @@ const handleSubmit = async () => {
     // Upload files only if they are provided
     let photoUrl: string | null = null
     let certificateUrl: string | null = null
+    let birthCertificateUrl: string | null = null
     
     if (photoFile.value) {
       photoUrl = await uploadFile(photoFile.value, 'photo', `photo_${id}`)
@@ -271,6 +330,10 @@ const handleSubmit = async () => {
     
     if (certificateFile.value) {
       certificateUrl = await uploadFile(certificateFile.value, 'certificate', `certificate_${id}`)
+    }
+    
+    if (birthCertificateFile.value) {
+      birthCertificateUrl = await uploadFile(birthCertificateFile.value, 'birth-certificate', `birth_certificate_${id}`)
     }
 
     // Create student
@@ -282,6 +345,7 @@ const handleSubmit = async () => {
         gender: formData.value.gender,
         photoUrl,
         disabilityCertificateUrl: certificateUrl,
+        birthCertificateUrl,
         schoolId: faculty.value.schoolId,
         addedByFacultyId: faculty.value.id,
         id,
