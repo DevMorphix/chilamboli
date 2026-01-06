@@ -217,8 +217,8 @@
 <script setup lang="ts">
 const router = useRouter()
 const { toFullUrl } = useUrl()
+const { faculty, checkAuth } = useFaculty()
 
-const faculty = ref<any>(null)
 const students = ref<any[]>([])
 const metadata = ref<any>(null)
 const loading = ref(true)
@@ -304,13 +304,9 @@ watch(searchQuery, () => {
 })
 
 onMounted(async () => {
-  const storedFaculty = localStorage.getItem('faculty')
-  if (!storedFaculty) {
-    router.push('/faculty/login')
+  if (!checkAuth()) {
     return
   }
-
-  faculty.value = JSON.parse(storedFaculty)
   await fetchStudents()
 })
 

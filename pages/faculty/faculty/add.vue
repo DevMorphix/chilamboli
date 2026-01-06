@@ -83,8 +83,8 @@
 
 <script setup lang="ts">
 const router = useRouter()
+const { faculty, checkAuth } = useFaculty()
 
-const faculty = ref<any>(null)
 const loading = ref(false)
 const error = ref('')
 
@@ -94,12 +94,7 @@ const formData = ref({
 })
 
 onMounted(() => {
-  const storedFaculty = localStorage.getItem('faculty')
-  if (!storedFaculty) {
-    router.push('/faculty/login')
-    return
-  }
-  faculty.value = JSON.parse(storedFaculty)
+  checkAuth()
 })
 
 const handleSubmit = async () => {

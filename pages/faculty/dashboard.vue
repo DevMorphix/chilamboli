@@ -252,8 +252,8 @@
 <script setup lang="ts">
 const router = useRouter()
 const { toFullUrl } = useUrl()
+const { faculty, checkAuth, logout } = useFaculty()
 
-const faculty = ref<any>(null)
 const loading = ref(true)
 const recentStudents = ref<any[]>([])
 const showSupport = ref(false)
@@ -270,13 +270,9 @@ const stats = ref({
 
 onMounted(async () => {
   // Check if faculty is logged in
-  const storedFaculty = localStorage.getItem('faculty')
-  if (!storedFaculty) {
-    router.push('/faculty/login')
+  if (!checkAuth()) {
     return
   }
-
-  faculty.value = JSON.parse(storedFaculty)
 
   // Fetch data - stats (including notifications), and recent students
   try {
@@ -316,8 +312,7 @@ onMounted(async () => {
 })
 
 const handleLogout = () => {
-  localStorage.removeItem('faculty')
-  router.push('/faculty/login')
+  logout()
 }
 
 const fetchUnreadCount = async () => {

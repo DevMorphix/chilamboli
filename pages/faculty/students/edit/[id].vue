@@ -248,9 +248,9 @@ import { nanoid } from 'nanoid'
 const route = useRoute()
 const router = useRouter()
 const { toFullUrl } = useUrl()
+const { faculty, checkAuth } = useFaculty()
 
 const studentId = route.params.id
-const faculty = ref<any>(null)
 const student = ref<any>(null)
 const loadingStudent = ref(true)
 const loading = ref(false)
@@ -274,12 +274,9 @@ const existingBirthCertificateUrl = ref<string | null>(null)
 const birthCertificateRemoved = ref(false)
 
 onMounted(async () => {
-  const storedFaculty = localStorage.getItem('faculty')
-  if (!storedFaculty) {
-    router.push('/faculty/login')
+  if (!checkAuth()) {
     return
   }
-  faculty.value = JSON.parse(storedFaculty)
 
   try {
     const response = await $fetch(`/api/students/${studentId}`)

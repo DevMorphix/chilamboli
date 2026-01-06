@@ -238,8 +238,8 @@
 <script setup lang="ts">
 const router = useRouter()
 const { toFullUrl } = useUrl()
+const { faculty, checkAuth } = useFaculty()
 
-const faculty = ref<any>(null)
 const students = ref<any[]>([])
 const faculties = ref<any[]>([])
 const availableEvents = ref<any[]>([])
@@ -315,14 +315,7 @@ const canSubmit = computed(() => {
 })
 
 onMounted(async () => {
-  const storedFaculty = localStorage.getItem('faculty')
-  // router.push('/faculty/dashboard')
-  if (!storedFaculty) {
-    router.push('/faculty/login')
-    return
-  }
-
-  faculty.value = JSON.parse(storedFaculty)
+  checkAuth()
 })
 
 const loadEvents = async () => {

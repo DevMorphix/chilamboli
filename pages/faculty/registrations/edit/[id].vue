@@ -199,9 +199,9 @@
 const route = useRoute()
 const router = useRouter()
 const { toFullUrl } = useUrl()
+const { faculty, checkAuth } = useFaculty()
 
 const registrationId = route.params.id as string
-const faculty = ref<any>(null)
 const registration = ref<any>(null)
 const students = ref<any[]>([])
 const faculties = ref<any[]>([])
@@ -267,13 +267,9 @@ const canSubmit = computed(() => {
 })
 
 onMounted(async () => {
-  const storedFaculty = localStorage.getItem('faculty')
-  if (!storedFaculty) {
-    router.push('/faculty/login')
+  if (!checkAuth()) {
     return
   }
-
-  faculty.value = JSON.parse(storedFaculty)
 
   try {
     // Fetch registration details

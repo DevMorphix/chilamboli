@@ -224,8 +224,8 @@
 import { nanoid } from 'nanoid'
 
 const router = useRouter()
+const { faculty, checkAuth } = useFaculty()
 
-const faculty = ref<any>(null)
 const loading = ref(false)
 const error = ref('')
 
@@ -253,12 +253,7 @@ const calculatedCategory = computed(() => {
 })
 
 onMounted(() => {
-  const storedFaculty = localStorage.getItem('faculty')
-  if (!storedFaculty) {
-    router.push('/faculty/login')
-    return
-  }
-  faculty.value = JSON.parse(storedFaculty)
+  checkAuth()
 })
 
 const handlePhotoChange = (event: Event) => {
