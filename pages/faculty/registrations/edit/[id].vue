@@ -441,6 +441,7 @@ const handleSubmit = async () => {
       body: {
         teamName: teamName.value || null,
         participantIds: isSpecialGroupEvent.value ? selectedFacultyIds.value : selectedStudentIds.value,
+        participantType: isSpecialGroupEvent.value ? 'faculty' : 'student',
       },
     })
 
