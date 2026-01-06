@@ -256,7 +256,6 @@ const { toFullUrl } = useUrl()
 const faculty = ref<any>(null)
 const loading = ref(true)
 const recentStudents = ref<any[]>([])
-const registrations = ref<any[]>([])
 const showSupport = ref(false)
 const showNotifications = ref(false)
 const unreadCount = ref(0)
@@ -279,36 +278,36 @@ onMounted(async () => {
 
   faculty.value = JSON.parse(storedFaculty)
 
-  // Fetch notifications count
-  fetchUnreadCount()
-
-  // Fetch data - recent items sorted by createdAt desc
+  // Fetch data - stats (including notifications), and recent students
   try {
-    const [studentsRes, facultyRes, registrationsRes] = await Promise.all([
+    const [statsRes, studentsRes] = await Promise.all([
+      $fetch(`/api/faculty/stats?schoolId=${faculty.value.schoolId}&facultyId=${faculty.value.id}`),
       $fetch(`/api/students/by-school?schoolId=${faculty.value.schoolId}&limit=5&sortBy=createdAt&sortOrder=desc`),
-      $fetch(`/api/faculty/by-school?schoolId=${faculty.value.schoolId}&limit=1`),
-      $fetch(`/api/registrations/by-school?schoolId=${faculty.value.schoolId}&limit=10&sortBy=createdAt&sortOrder=desc`),
     ])
 
+    // Update stats from dedicated stats endpoint
+    if (statsRes.stats) {
+      stats.value.totalStudents = statsRes.stats.totalStudents
+      stats.value.totalFaculty = statsRes.stats.totalFaculty
+      stats.value.totalRegistrations = statsRes.stats.totalRegistrations
+    }
+
+    // Update notification summary from stats endpoint
+    if (statsRes.notifications) {
+      unreadCount.value = statsRes.notifications.unreadCount
+      
+      // Check for important unread notifications and auto-open the first one
+      if (statsRes.notifications.importantUnread) {
+        importantNotification.value = statsRes.notifications.importantUnread
+        // Small delay to ensure UI is ready
+        setTimeout(() => {
+          showImportantModal.value = true
+        }, 500)
+      }
+    }
+
+    // Update recent students list
     recentStudents.value = studentsRes.data || studentsRes.students || []
-    registrations.value = registrationsRes.data || registrationsRes.registrations || []
-    
-    // Update stats from metadata if available, otherwise use array length
-    if (studentsRes.metadata) {
-      stats.value.totalStudents = studentsRes.metadata.total
-    } else {
-      stats.value.totalStudents = recentStudents.value.length
-    }
-    if (facultyRes.metadata) {
-      stats.value.totalFaculty = facultyRes.metadata.total
-    } else {
-      stats.value.totalFaculty = 0
-    }
-    if (registrationsRes.metadata) {
-      stats.value.totalRegistrations = registrationsRes.metadata.total
-    } else {
-      stats.value.totalRegistrations = registrations.value.length
-    }
   } catch (err) {
     console.error('Failed to fetch data:', err)
   } finally {
@@ -322,23 +321,30 @@ const handleLogout = () => {
 }
 
 const fetchUnreadCount = async () => {
-  if (!faculty.value?.id) return
+  if (!faculty.value?.id || !faculty.value?.schoolId) return
 
   try {
-    const response = await $fetch<{ success: boolean; data: any[] }>(
-      `/api/notifications?facultyId=${faculty.value.id}`
+    const response = await $fetch<{ 
+      success: boolean
+      notifications?: { 
+        unreadCount: number
+        importantUnread: any | null
+      }
+    }>(
+      `/api/faculty/stats?schoolId=${faculty.value.schoolId}&facultyId=${faculty.value.id}`
     )
-    const notifications = response.data || []
-    unreadCount.value = notifications.filter((n: any) => !n.isRead).length
     
-    // Check for important unread notifications and auto-open the first one
-    const importantUnread = notifications.find((n: any) => !n.isRead && n.isImportant)
-    if (importantUnread) {
-      importantNotification.value = importantUnread
-      // Small delay to ensure UI is ready
-      setTimeout(() => {
-        showImportantModal.value = true
-      }, 500)
+    if (response.notifications) {
+      unreadCount.value = response.notifications.unreadCount
+      
+      // Check for important unread notifications and auto-open the first one
+      if (response.notifications.importantUnread) {
+        importantNotification.value = response.notifications.importantUnread
+        // Small delay to ensure UI is ready
+        setTimeout(() => {
+          showImportantModal.value = true
+        }, 500)
+      }
     }
   } catch (error) {
     console.error('Failed to fetch notifications count:', error)
