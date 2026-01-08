@@ -10,12 +10,21 @@
             </NuxtLink>
             <h1 class="text-2xl font-bold text-gray-900">Student Management</h1>
           </div>
+          <!-- Registration is closed - button disabled -->
+          <!-- 
           <NuxtLink
             to="/faculty/students/add"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium transition-colors"
           >
             + Add Student
           </NuxtLink>
+          -->
+          <button
+            disabled
+            class="px-4 py-2 bg-gray-400 text-white rounded-md font-medium cursor-not-allowed opacity-50"
+          >
+            + Add Student
+          </button>
         </div>
       </div>
     </header>
@@ -66,9 +75,19 @@
 
         <div v-else-if="students.length === 0" class="text-center py-12 text-gray-500">
           <p>No students found.</p>
+          <!-- Registration is closed - link disabled -->
+          <!-- 
           <NuxtLink to="/faculty/students/add" class="text-blue-600 hover:text-blue-700 font-medium mt-2 inline-block">
             Add your first student
           </NuxtLink>
+          -->
+          <button
+            disabled
+            class="text-gray-400 cursor-not-allowed font-medium mt-2 inline-block pointer-events-none"
+          >
+            Add your first student
+          </button>
+          <p class="text-sm text-yellow-600 mt-2">Registration is closed. You can still update existing student details.</p>
         </div>
 
         <div v-else class="overflow-x-auto">

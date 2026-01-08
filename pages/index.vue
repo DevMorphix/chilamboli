@@ -37,12 +37,11 @@
       <main class="flex-1 flex items-center justify-center px-6 sm:px-8 py-8">
         <div class="max-w-5xl mx-auto text-center w-full">
           <!-- Status Badge -->
-          <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-semibold mb-8 animate-fade-in">
+          <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-yellow-100 border border-yellow-300 text-yellow-800 text-sm font-semibold mb-8 animate-fade-in">
             <span class="relative flex h-2.5 w-2.5">
-              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+              <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-600"></span>
             </span>
-            <span>Registrations Open</span>
+            <span>Registrations Closed</span>
           </div>
 
           <!-- Logo with Animation -->
@@ -86,6 +85,8 @@
 
           <!-- Info Text -->
           <p class="text-sm gap-3 flex justify-center text-muted-foreground animate-fade-in-up" style="animation-delay: 0.5s;">
+            <!-- Registration is closed - link commented out but kept for reference -->
+            <!-- 
             New faculty member? 
             <NuxtLink 
               to="/faculty/register" 
@@ -93,6 +94,8 @@
             >
               Register here
             </NuxtLink>
+            -->
+            Faculty registration is currently closed.
           </p>
         </div>
       </main>

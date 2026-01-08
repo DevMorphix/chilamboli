@@ -116,7 +116,8 @@
         >
           <div class="flex-1 min-w-0">
             <h3 class="text-base sm:text-lg font-semibold">Manage Students</h3>
-            <p class="text-blue-100 text-xs sm:text-sm mt-1">Add, edit, and view student details</p>
+            <!-- <p class="text-blue-100 text-xs sm:text-sm mt-1">Add, edit, and view student details</p> -->
+            <p class="text-blue-100 text-xs sm:text-sm mt-1">Edit and view student details</p>
           </div>
           <svg class="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -129,7 +130,8 @@
         >
           <div class="flex-1 min-w-0">
             <h3 class="text-base sm:text-lg font-semibold">Manage Faculty</h3>
-            <p class="text-indigo-100 text-xs sm:text-sm mt-1">Add and view faculty members</p>
+            <!-- <p class="text-indigo-100 text-xs sm:text-sm mt-1">Add and view faculty members</p> -->
+            <p class="text-indigo-100 text-xs sm:text-sm mt-1">View faculty members</p>
           </div>
           <svg class="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -142,7 +144,8 @@
         >
           <div class="flex-1 min-w-0">
             <h3 class="text-base sm:text-lg font-semibold">Event Registrations</h3>
-            <p class="text-green-100 text-xs sm:text-sm mt-1">Register students for events</p>
+            <!-- <p class="text-green-100 text-xs sm:text-sm mt-1">Register students for events</p> -->
+            <p class="text-green-100 text-xs sm:text-sm mt-1">View and update registrations</p>
           </div>
           <svg class="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -173,7 +176,7 @@
             Loading...
           </div>
           <div v-else-if="recentStudents.length === 0" class="text-center py-6 sm:py-8 text-gray-500 text-sm sm:text-base px-2">
-            No students added yet. Click "Manage Students" to add your first student.
+            No students found. Registration is closed, but you can still view and update existing student details.
           </div>
           <div v-else class="space-y-3 sm:space-y-4">
             <div
