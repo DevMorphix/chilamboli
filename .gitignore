@@ -40,3 +40,20 @@ drizzle
 
 #backup
 backup
+
+
+
+# notebooks
+notebooks/output/
+notebooks/*.sql
+notebooks/*.db
+notebooks/.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# python virtual environment
+.venv
+venv
+env
+
+# macOS files
+.DS_Store
