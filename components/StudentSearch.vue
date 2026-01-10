@@ -47,8 +47,7 @@
       
       <div v-else-if="searchResults.length === 0 && searchQuery.length >= 2" class="px-4 py-3">
         <p class="text-sm text-muted-foreground mb-2">No students found</p>
-        <!-- Registration is closed - create button disabled -->
-        <!-- 
+
         <button
           type="button"
           @click="openCreateDialog"
@@ -56,15 +55,16 @@
         >
           + Create new student "{{ searchQuery }}"
         </button>
-        -->
-        <button
+       
+        <!-- <button
           type="button"
           disabled
           class="w-full px-3 py-2 text-sm text-left bg-gray-300 text-gray-500 rounded-md cursor-not-allowed opacity-50"
         >
           + Create new student "{{ searchQuery }}"
         </button>
-        <p class="text-xs text-yellow-600 mt-2">Registration is closed</p>
+        <p class="text-xs text-yellow-600 mt-2">Registration is closed</p> -->
+
       </div>
 
       <div v-else>
@@ -88,8 +88,7 @@
           </div>
         </button>
         
-        <!-- Registration is closed - create button disabled -->
-        <!-- 
+        
         <div class="border-t border-border px-4 py-2">
           <button
             type="button"
@@ -99,8 +98,8 @@
             + Create new student
           </button>
         </div>
-        -->
-        <div class="border-t border-border px-4 py-2">
+       
+        <!-- <div class="border-t border-border px-4 py-2">
           <button
             type="button"
             disabled
@@ -109,14 +108,15 @@
             + Create new student
           </button>
           <p class="text-xs text-yellow-600 mt-2">Registration is closed</p>
-        </div>
+        </div> -->
+
       </div>
     </div>
 
     <!-- Create Student Dialog -->
     <!-- Registration is closed - dialog disabled but kept for reference -->
     <div
-      v-if="false && showCreateDialog"
+      v-if="showCreateDialog"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       @click.self="closeCreateDialog"
     >

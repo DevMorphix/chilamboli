@@ -10,21 +10,22 @@
             </NuxtLink>
             <h1 class="text-2xl font-bold text-gray-900">Faculty Management</h1>
           </div>
-          <!-- Registration is closed - button disabled -->
-          <!-- 
+          
+          
           <NuxtLink
             to="/faculty/faculty/add"
             class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md font-medium transition-colors"
           >
             + Add Faculty
           </NuxtLink>
-          -->
-          <button
+         
+          <!-- <button
             disabled
             class="px-4 py-2 bg-gray-400 text-white rounded-md font-medium cursor-not-allowed opacity-50"
           >
             + Add Faculty
-          </button>
+          </button> -->
+
         </div>
       </div>
     </header>
@@ -74,19 +75,19 @@
 
         <div v-else-if="facultyList.length === 0" class="text-center py-12 text-gray-500">
           <p>No faculty found.</p>
-          <!-- Registration is closed - link disabled -->
-          <!-- 
+          
           <NuxtLink to="/faculty/faculty/add" class="text-indigo-600 hover:text-indigo-700 font-medium mt-2 inline-block">
             Add your first faculty member
           </NuxtLink>
-          -->
-          <button
+         
+          <!-- <button
             disabled
             class="text-gray-400 cursor-not-allowed font-medium mt-2 inline-block pointer-events-none"
           >
             Add your first faculty member
           </button>
-          <p class="text-sm text-yellow-600 mt-2">Registration is closed. You can still update existing faculty details.</p>
+          <p class="text-sm text-yellow-600 mt-2">Registration is closed. You can still update existing faculty details.</p> -->
+          
         </div>
 
         <div v-else class="overflow-x-auto">
