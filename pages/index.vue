@@ -25,6 +25,12 @@
         
         <nav class="flex items-center gap-2">
           <NuxtLink 
+            to="/leaderboards" 
+            class="px-5 py-2.5 text-sm font-medium text-foreground transition-all rounded-lg bg-muted hover:border hover:border-border"
+          >
+            Leaderboards
+          </NuxtLink>
+          <NuxtLink 
             to="/faculty/login" 
             class="px-5 py-2.5 text-sm font-medium text-foreground transition-all rounded-lg bg-muted hover:border hover:border-border"
           >

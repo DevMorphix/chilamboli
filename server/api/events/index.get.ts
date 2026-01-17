@@ -1,6 +1,6 @@
-import { useDB } from "../utils/db"
-import { events } from "../database/schema"
-import { getPaginationParams, createPaginatedResponse } from "../utils/pagination"
+import { useDB } from "../../utils/db"
+import { events } from "../../database/schema"
+import { getPaginationParams, createPaginatedResponse } from "../../utils/pagination"
 import { count, like, or, eq, and, asc, desc } from "drizzle-orm"
 
 export default defineEventHandler(async (event) => {

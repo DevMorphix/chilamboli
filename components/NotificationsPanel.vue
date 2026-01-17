@@ -145,7 +145,7 @@ const fetchNotifications = async () => {
   loading.value = true
   try {
     const response = await $fetch<{ success: boolean; data: Notification[] }>(
-      `/api/notifications?facultyId=${props.facultyId}`
+      `/api/notifications/by-faculty?facultyId=${props.facultyId}`
     )
     notifications.value = response.data || []
   } catch (error) {

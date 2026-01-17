@@ -215,7 +215,7 @@ const fetchStudents = async () => {
       params.gender = filterGender.value
     }
 
-    const response = await $fetch('/api/admin/students', { params })
+    const response = await $fetch('/api/students', { params })
     students.value = response.data || []
     metadata.value = response.metadata
   } catch (err) {

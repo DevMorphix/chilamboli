@@ -183,7 +183,7 @@ const fetchFaculty = async () => {
       params.isVerified = filterVerified.value
     }
 
-    const response = await $fetch('/api/admin/faculty', { params })
+    const response = await $fetch('/api/faculty', { params })
     facultyList.value = response.data || []
     metadata.value = response.metadata
   } catch (err) {

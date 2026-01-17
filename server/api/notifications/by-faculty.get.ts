@@ -1,5 +1,5 @@
-import { useDB } from "../utils/db"
-import { notifications, notificationRecipients, faculty } from "../database/schema"
+import { useDB } from "../../utils/db"
+import { notifications, notificationRecipients, faculty } from "../../database/schema"
 import { eq, desc, or, isNull, and } from "drizzle-orm"
 
 export default defineEventHandler(async (event) => {

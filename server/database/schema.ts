@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core"
+import { sqliteTable, text, integer, index, uniqueIndex } from "drizzle-orm/sqlite-core"
 import { relations } from "drizzle-orm"
 
 // Schools table
@@ -15,10 +15,11 @@ export const schools = sqliteTable("schools", {
 // Auth table - stores authentication credentials for both faculty and admin
 export const auth = sqliteTable("auth", {
   id: text("id").primaryKey(),
-  email: text("email").notNull().unique(),
+  email: text("email"),
+  mobileNumber: text("mobile_number"),
   password: text("password").notNull(),
-  userType: text("user_type", { enum: ["faculty", "admin"] }).notNull(),
-  userId: text("user_id").notNull(), // References faculty.id or admin identifier
+  userType: text("user_type", { enum: ["faculty", "admin", "judge"] }).notNull(),
+  userId: text("user_id").notNull(), // References faculty.id or admin.id or judges.id identifier
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
@@ -26,7 +27,10 @@ export const auth = sqliteTable("auth", {
     .notNull()
     .$defaultFn(() => new Date())
     .$onUpdateFn(() => new Date()),
-})
+}, (table) => ({
+  emailUserTypeIdx: index("idx_auth_email_user_type").on(table.email, table.userType),
+  mobileNumberUserTypeIdx: index("idx_auth_mobile_number_user_type").on(table.mobileNumber, table.userType),
+}))
 
 // Faculty table
 export const faculty = sqliteTable("faculty", {
@@ -46,7 +50,9 @@ export const faculty = sqliteTable("faculty", {
     .notNull()
     .$defaultFn(() => new Date())
     .$onUpdateFn(() => new Date()),
-})
+}, (table) => ({
+  schoolIdIdx: index("idx_faculty_school_id").on(table.schoolId),
+}))
 
 // Students table
 export const students = sqliteTable("students", {
@@ -72,7 +78,10 @@ export const students = sqliteTable("students", {
     .notNull()
     .$defaultFn(() => new Date())
     .$onUpdateFn(() => new Date()),
-})
+}, (table) => ({
+  schoolIdIdx: index("idx_students_school_id").on(table.schoolId),
+  addedByFacultyIdIdx: index("idx_students_added_by_faculty_id").on(table.addedByFacultyId),
+}))
 
 // Events table
 export const events = sqliteTable("events", {
@@ -87,6 +96,39 @@ export const events = sqliteTable("events", {
     .notNull()
     .$defaultFn(() => new Date()),
 })
+
+// Judges table
+export const judges = sqliteTable("judges", {
+  id: text("id").primaryKey(),
+  judgeName: text("judge_name").notNull(),
+  mobileNumber: text("mobile_number").notNull().unique(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date())
+    .$onUpdateFn(() => new Date()),
+})
+
+// Event-Judge assignments (many-to-many relationship)
+export const eventJudges = sqliteTable("event_judges", {
+  id: text("id").primaryKey(),
+  eventId: text("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  judgeId: text("judge_id")
+    .notNull()
+    .references(() => judges.id, { onDelete: "cascade" }),
+  enabled: integer("enabled", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+}, (table) => ({
+  judgeIdEnabledIdx: index("idx_event_judges_judge_id_enabled").on(table.judgeId, table.enabled),
+  eventIdIdx: index("idx_event_judges_event_id").on(table.eventId),
+  eventIdJudgeIdUniqueIdx: uniqueIndex("idx_event_judges_event_id_judge_id").on(table.eventId, table.judgeId),
+}))
 
 // Registrations table
 export const registrations = sqliteTable("registrations", {
@@ -108,7 +150,10 @@ export const registrations = sqliteTable("registrations", {
     .notNull()
     .$defaultFn(() => new Date())
     .$onUpdateFn(() => new Date()),
-})
+}, (table) => ({
+  eventIdIdx: index("idx_registrations_event_id").on(table.eventId),
+  schoolIdIdx: index("idx_registrations_school_id").on(table.schoolId),
+}))
 
 // Registration participants (many-to-many relationship)
 export const registrationParticipants = sqliteTable("registration_participants", {
@@ -125,7 +170,33 @@ export const registrationParticipants = sqliteTable("registration_participants",
     .notNull()
     .$defaultFn(() => new Date())
     .$onUpdateFn(() => new Date()),
-})
+}, (table) => ({
+  registrationIdIdx: index("idx_registration_participants_registration_id").on(table.registrationId),
+  participantIdTypeIdx: index("idx_registration_participants_participant_id_type").on(table.participantId, table.participantType),
+}))
+
+// Judgments table - stores scores from judges for registrations
+export const judgments = sqliteTable("judgments", {
+  id: text("id").primaryKey(),
+  registrationId: text("registration_id")
+    .notNull()
+    .references(() => registrations.id, { onDelete: "cascade" }),
+  judgeId: text("judge_id")
+    .notNull()
+    .references(() => judges.id, { onDelete: "cascade" }),
+  score: integer("score").notNull(),
+  comments: text("comments"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date())
+    .$onUpdateFn(() => new Date()),
+}, (table) => ({
+  registrationIdIdx: index("idx_judgments_registration_id").on(table.registrationId),
+  registrationIdJudgeIdUniqueIdx: uniqueIndex("idx_judgments_registration_id_judge_id").on(table.registrationId, table.judgeId),
+}))
 
 // Notifications table - stores notification content
 export const notifications = sqliteTable("notifications", {
@@ -138,7 +209,9 @@ export const notifications = sqliteTable("notifications", {
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
-})
+}, (table) => ({
+  schoolIdIdx: index("idx_notifications_school_id").on(table.schoolId),
+}))
 
 // Notification recipients table - tracks which schools have received/viewed each notification
 export const notificationRecipients = sqliteTable("notification_recipients", {
@@ -154,7 +227,9 @@ export const notificationRecipients = sqliteTable("notification_recipients", {
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
-})
+}, (table) => ({
+  notificationIdSchoolIdUniqueIdx: uniqueIndex("idx_notification_recipients_notification_id_school_id").on(table.notificationId, table.schoolId),
+}))
 
 // Relations
 export const schoolsRelations = relations(schools, ({ many }) => ({
@@ -201,6 +276,23 @@ export const studentsRelations = relations(students, ({ one, many }) => ({
 
 export const eventsRelations = relations(events, ({ many }) => ({
   registrations: many(registrations),
+  judgeAssignments: many(eventJudges),
+}))
+
+export const judgesRelations = relations(judges, ({ many }) => ({
+  eventAssignments: many(eventJudges),
+  judgments: many(judgments),
+}))
+
+export const eventJudgesRelations = relations(eventJudges, ({ one }) => ({
+  event: one(events, {
+    fields: [eventJudges.eventId],
+    references: [events.id],
+  }),
+  judge: one(judges, {
+    fields: [eventJudges.judgeId],
+    references: [judges.id],
+  }),
 }))
 
 export const registrationsRelations = relations(registrations, ({ one, many }) => ({
@@ -217,6 +309,18 @@ export const registrationsRelations = relations(registrations, ({ one, many }) =
     references: [faculty.id],
   }),
   participants: many(registrationParticipants),
+  judgments: many(judgments),
+}))
+
+export const judgmentsRelations = relations(judgments, ({ one }) => ({
+  registration: one(registrations, {
+    fields: [judgments.registrationId],
+    references: [registrations.id],
+  }),
+  judge: one(judges, {
+    fields: [judgments.judgeId],
+    references: [judges.id],
+  }),
 }))
 
 export const registrationParticipantsRelations = relations(registrationParticipants, ({ one }) => ({
@@ -264,3 +368,11 @@ export type RegistrationParticipant = typeof registrationParticipants.$inferSele
 export type NewRegistrationParticipant = typeof registrationParticipants.$inferInsert
 export type Notification = typeof notifications.$inferSelect
 export type NewNotification = typeof notifications.$inferInsert
+export type NotificationRecipient = typeof notificationRecipients.$inferSelect
+export type NewNotificationRecipient = typeof notificationRecipients.$inferInsert
+export type Judge = typeof judges.$inferSelect
+export type NewJudge = typeof judges.$inferInsert
+export type EventJudge = typeof eventJudges.$inferSelect
+export type NewEventJudge = typeof eventJudges.$inferInsert
+export type Judgment = typeof judgments.$inferSelect
+export type NewJudgment = typeof judgments.$inferInsert
