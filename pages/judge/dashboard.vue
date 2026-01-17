@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-gray-50 flex flex-col">
     <!-- Header -->
     <header class="bg-white shadow-sm border-b sticky top-0 z-10">
       <div class="max-w-7xl mx-auto px-4 py-3">
@@ -22,7 +22,7 @@
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 py-4 pb-20">
+    <main class="max-w-7xl mx-auto px-4 py-4 pb-20 flex-1">
       <div v-if="loading" class="text-center py-12 text-gray-500">
         <svg class="animate-spin h-8 w-8 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

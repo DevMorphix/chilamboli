@@ -22,14 +22,6 @@ export default defineEventHandler(async (event) => {
       )
     }
 
-    // Get total count
-    const [totalResult] = await db
-      .select({ count: count() })
-      .from(events)
-      .where(whereClause)
-
-    const total = totalResult.count
-
     // Build order by clause
     let orderByClause: any = asc(events.name) // default
     if (sortBy === "name") {
@@ -41,37 +33,63 @@ export default defineEventHandler(async (event) => {
     // Apply pagination
     const offset = (page - 1) * limit
 
-    // Get paginated events
-    const paginatedEvents = await db
-      .select()
-      .from(events)
-      .where(whereClause)
-      .orderBy(orderByClause)
-      .limit(limit)
-      .offset(offset)
+    // Run count and events query in parallel for better performance
+    const [totalResult, paginatedEvents] = await Promise.all([
+      // Get total count
+      db
+        .select({ count: count() })
+        .from(events)
+        .where(whereClause)
+        .then((results) => results[0]),
+
+      // Get paginated events
+      db
+        .select()
+        .from(events)
+        .where(whereClause)
+        .orderBy(orderByClause)
+        .limit(limit)
+        .offset(offset),
+    ])
+
+    const total = totalResult.count
 
     // Get event IDs from paginated events
     const eventIds = paginatedEvents.map((e) => e.id)
 
-    // Get all event-judge assignments for these events
-    const filteredAssignments = eventIds.length > 0
-      ? await db
-          .select({
-            assignmentId: eventJudges.id,
-            eventId: eventJudges.eventId,
-            judgeId: judges.id,
-            judgeName: judges.judgeName,
-            judgeMobileNumber: judges.mobileNumber,
-            enabled: eventJudges.enabled,
-            assignedAt: eventJudges.createdAt,
-          })
-          .from(eventJudges)
-          .innerJoin(judges, eq(eventJudges.judgeId, judges.id))
-          .where(inArray(eventJudges.eventId, eventIds))
-          .orderBy(judges.judgeName)
-      : []
+    // Early return if no events
+    if (eventIds.length === 0) {
+      const paginatedResponse = createPaginatedResponse([], total, {
+        page,
+        limit,
+        search,
+        sortBy,
+        sortOrder,
+      })
+      return {
+        success: true,
+        ...paginatedResponse,
+      }
+    }
 
-    // Group assignments by event ID
+    // Get all event-judge assignments for these events
+    // Optimized: Use Map for O(1) lookup during grouping
+    const filteredAssignments = await db
+      .select({
+        assignmentId: eventJudges.id,
+        eventId: eventJudges.eventId,
+        judgeId: judges.id,
+        judgeName: judges.judgeName,
+        judgeMobileNumber: judges.mobileNumber,
+        enabled: eventJudges.enabled,
+        assignedAt: eventJudges.createdAt,
+      })
+      .from(eventJudges)
+      .innerJoin(judges, eq(eventJudges.judgeId, judges.id))
+      .where(inArray(eventJudges.eventId, eventIds))
+      .orderBy(judges.judgeName)
+
+    // Group assignments by event ID using Map for O(1) operations
     const assignmentsByEventId = new Map<string, typeof filteredAssignments>()
     for (const assignment of filteredAssignments) {
       const eventId = assignment.eventId

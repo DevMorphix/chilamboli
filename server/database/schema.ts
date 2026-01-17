@@ -95,7 +95,10 @@ export const events = sqliteTable("events", {
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
-})
+}, (table) => ({
+  nameIdx: index("idx_events_name").on(table.name),
+  createdAtIdx: index("idx_events_created_at").on(table.createdAt),
+}))
 
 // Judges table
 export const judges = sqliteTable("judges", {

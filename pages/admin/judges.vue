@@ -5,7 +5,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div class="flex items-center justify-between">
           <div>
-            <NuxtLink to="/admin/dashboard" class="text-purple-600 hover:text-purple-700 text-sm mb-2 inline-block">
+            <NuxtLink to="/admin/dashboard#control" class="text-purple-600 hover:text-purple-700 text-sm mb-2 inline-block">
               ← Back to Dashboard
             </NuxtLink>
             <h1 class="text-2xl font-bold text-gray-900">Judges Management</h1>
@@ -97,10 +97,16 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {{ formatDate(judgeItem.createdAt) }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
+                  <button
+                    @click="openEditModal(judgeItem)"
+                    class="text-purple-600 hover:text-purple-700 font-medium"
+                  >
+                    Edit
+                  </button>
                   <button
                     @click="openDeleteModal(judgeItem)"
-                    class="text-red-600 hover:text-red-900"
+                    class="text-red-600 hover:text-red-700 font-medium"
                   >
                     Delete
                   </button>
@@ -149,13 +155,13 @@
         <div
           v-if="showCreateModal"
           class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          @click.self="showCreateModal = false"
+          @click.self="closeModal"
         >
           <div class="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-              <h2 class="text-xl font-semibold text-gray-900">Create Judge</h2>
+              <h2 class="text-xl font-semibold text-gray-900">{{ editingJudgeId ? 'Edit Judge' : 'Create Judge' }}</h2>
               <button
-                @click="showCreateModal = false"
+                @click="closeModal"
                 class="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -164,7 +170,7 @@
               </button>
             </div>
 
-            <form @submit.prevent="createJudge" class="p-6 space-y-4">
+            <form @submit.prevent="editingJudgeId ? updateJudge() : createJudge()" class="p-6 space-y-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Judge Name</label>
                 <input
@@ -196,17 +202,17 @@
               <div class="flex items-center gap-3 justify-end">
                 <button
                   type="button"
-                  @click="showCreateModal = false"
+                  @click="closeModal"
                   class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  :disabled="creating"
+                  :disabled="creating || updating"
                   class="px-4 py-2 text-sm font-medium text-white bg-purple-600 border border-purple-600 rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {{ creating ? 'Creating...' : 'Create Judge' }}
+                  {{ updating ? 'Updating...' : creating ? 'Creating...' : editingJudgeId ? 'Update Judge' : 'Create Judge' }}
                 </button>
               </div>
             </form>
@@ -276,7 +282,11 @@ const createForm = ref({
 const creating = ref(false)
 const createError = ref('')
 
+const editingJudgeId = ref<string | null>(null)
+const updating = ref(false)
+
 const showDeleteModal = ref(false)
+const selectedJudge = ref<any>(null)
 const deleting = ref(false)
 
 let searchTimeout: NodeJS.Timeout | null = null
@@ -310,7 +320,7 @@ const changePage = (page: number) => {
   fetchJudges()
 }
 
-watch(searchQuery, () => {
+watch(searchQuery, (newValue) => {
   if (searchTimeout) {
     clearTimeout(searchTimeout)
   }
@@ -319,6 +329,29 @@ watch(searchQuery, () => {
     fetchJudges()
   }, 300)
 })
+
+onUnmounted(() => {
+  if (searchTimeout) {
+    clearTimeout(searchTimeout)
+    searchTimeout = null
+  }
+})
+
+const openEditModal = (judge: any) => {
+  editingJudgeId.value = judge.id
+  createForm.value = {
+    judgeName: judge.judgeName,
+    mobileNumber: judge.mobileNumber,
+  }
+  showCreateModal.value = true
+}
+
+const closeModal = () => {
+  showCreateModal.value = false
+  editingJudgeId.value = null
+  createForm.value = { judgeName: '', mobileNumber: '' }
+  createError.value = ''
+}
 
 const createJudge = async () => {
   createError.value = ''
@@ -336,14 +369,41 @@ const createJudge = async () => {
       body: createForm.value,
     })
     if (response.success) {
-      showCreateModal.value = false
-      createForm.value = { judgeName: '', mobileNumber: '' }
+      closeModal()
       await fetchJudges()
     }
   } catch (err: any) {
     createError.value = err.data?.message || 'Failed to create judge'
   } finally {
     creating.value = false
+  }
+}
+
+const updateJudge = async () => {
+  if (!editingJudgeId.value) return
+
+  createError.value = ''
+  
+  // Validate mobile number format
+  if (!/^\d{10}$/.test(createForm.value.mobileNumber)) {
+    createError.value = 'Mobile number must be 10 digits'
+    return
+  }
+  
+  updating.value = true
+  try {
+    const response = await $fetch(`/api/judges/${editingJudgeId.value}`, {
+      method: 'PUT',
+      body: createForm.value,
+    })
+    if (response.success) {
+      closeModal()
+      await fetchJudges()
+    }
+  } catch (err: any) {
+    createError.value = err.data?.message || 'Failed to update judge'
+  } finally {
+    updating.value = false
   }
 }
 
