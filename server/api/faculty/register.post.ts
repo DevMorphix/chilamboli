@@ -7,6 +7,16 @@ import { nanoid } from "nanoid"
 import bcrypt from "bcryptjs"
 
 export default defineEventHandler(async (event) => {
+  const config = useRuntimeConfig(event)
+  
+  // Check if registration is open
+  if (!config.public.registrationOpen) {
+    throw createError({
+      statusCode: 403,
+      message: "Registration is currently closed",
+    })
+  }
+
   const db = useDB(event)
   const body = await readBody(event)
 

@@ -11,14 +11,15 @@
             <h1 class="text-2xl font-bold text-gray-900">Event Registrations</h1>
           </div>
           
-          <!-- <NuxtLink
+          <NuxtLink
+            v-if="isRegistrationOpen"
             to="/faculty/registrations/new"
             class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium transition-colors"
           >
             + New Registration
-          </NuxtLink> -->
-         
+          </NuxtLink>
           <button
+            v-else
             disabled
             class="px-4 py-2 bg-gray-400 text-white rounded-md font-medium cursor-not-allowed opacity-50"
           >
@@ -76,17 +77,22 @@
         <div v-else-if="registrations.length === 0" class="text-center py-12 text-gray-500">
           <p>No registrations yet.</p>
           
-          <!-- <NuxtLink to="/faculty/registrations/new" class="text-green-600 hover:text-green-700 font-medium mt-2 inline-block">
-            Register students for events
-          </NuxtLink> -->
-         
-          <button
-            disabled
-            class="text-gray-400 cursor-not-allowed font-medium mt-2 inline-block pointer-events-none"
+          <NuxtLink 
+            v-if="isRegistrationOpen"
+            to="/faculty/registrations/new" 
+            class="text-green-600 hover:text-green-700 font-medium mt-2 inline-block"
           >
             Register students for events
-          </button>
-          <p class="text-sm text-yellow-600 mt-2">Registration is closed. You can still update existing registrations.</p>
+          </NuxtLink>
+          <template v-else>
+            <button
+              disabled
+              class="text-gray-400 cursor-not-allowed font-medium mt-2 inline-block pointer-events-none"
+            >
+              Register students for events
+            </button>
+            <p class="text-sm text-yellow-600 mt-2">Registration is closed. You can still update existing registrations.</p>
+          </template>
           
         </div>
 
@@ -254,6 +260,7 @@
 <script setup lang="ts">
 const router = useRouter()
 const { faculty, checkAuth } = useFaculty()
+const { isRegistrationOpen } = useRegistration()
 
 const registrations = ref<any[]>([])
 const metadata = ref<any>(null)

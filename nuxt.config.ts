@@ -33,6 +33,7 @@ export default defineNuxtConfig({
     resendApiKey: process.env.NUXT_RESEND_API_KEY || process.env.RESEND_API_KEY || "",
     public: {
       r2PublicUrl: process.env.NUXT_PUBLIC_R2_PUBLIC_URL || process.env.R2_PUBLIC_URL || "",
+      registrationOpen: process.env.NUXT_PUBLIC_REGISTRATION_OPEN === 'true' || false,
     },
   },
 })
