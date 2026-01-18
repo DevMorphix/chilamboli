@@ -1,6 +1,7 @@
 import { useDB } from "../../utils/db"
 import { events, registrations, judgments, eventJudges, schools } from "../../database/schema"
 import { eq, sql } from "drizzle-orm"
+import { calculateGrade } from "../../utils/grading"
 
 // Get leaderboard grouped by event
 export default defineEventHandler(async (event) => {
@@ -46,23 +47,12 @@ export default defineEventHandler(async (event) => {
         const maxPossibleScore = maxScore * 10
 
         // Filter out dummy data: registrations with no judgments
+        // Event results use raw scores (sum of judgments) for ranking, not grade points
         const leaderboard = results
           .filter((result) => (result.judgeCount || 0) > 0 && (result.totalScore || 0) > 0)
           .map((result) => {
             const totalScore = result.totalScore || 0
-            const normalizedScore =
-              maxPossibleScore > 0 ? (totalScore / maxPossibleScore) * 100 : 0
-
-            let grade: string
-            if (normalizedScore >= 95) grade = "A+"
-            else if (normalizedScore >= 90) grade = "A"
-            else if (normalizedScore >= 85) grade = "B+"
-            else if (normalizedScore >= 80) grade = "B"
-            else if (normalizedScore >= 75) grade = "C+"
-            else if (normalizedScore >= 70) grade = "C"
-            else if (normalizedScore >= 65) grade = "D+"
-            else if (normalizedScore >= 60) grade = "D"
-            else grade = "F"
+            const gradeInfo = calculateGrade(totalScore, maxPossibleScore)
 
             return {
               registrationId: result.registrationId,
@@ -71,11 +61,13 @@ export default defineEventHandler(async (event) => {
               schoolName: result.schoolName,
               schoolCode: result.schoolCode,
               totalScore: Math.round(totalScore * 10) / 10,
-              normalizedScore: Math.round(normalizedScore * 10) / 10,
-              grade,
+              normalizedScore: gradeInfo.normalizedScore,
+              grade: gradeInfo.grade,
+              gradePoint: gradeInfo.gradePoint,
             }
           })
-          .sort((a, b) => b.normalizedScore - a.normalizedScore)
+          // Sort by raw total score for event results (not by grade point)
+          .sort((a, b) => b.totalScore - a.totalScore)
           .slice(0, 10)
           .map((item, index) => ({
             ...item,
