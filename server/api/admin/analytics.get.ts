@@ -56,6 +56,7 @@ export default defineEventHandler(async (event) => {
       registrationByEventType,
       studentRegistrationTrends,
       participatingSchoolsCountResult,
+      participatingStudentsCountResult,
       registrationsByEvent,
       studentsByEvent
     ] = await Promise.all([
@@ -113,6 +114,13 @@ export default defineEventHandler(async (event) => {
         .from(registrations)
         .then(r => r[0]),
       
+      // Count unique students participating in at least one registration
+      db
+        .select({ count: sql<number>`COUNT(DISTINCT ${registrationParticipants.participantId}) as count` })
+        .from(registrationParticipants)
+        .where(eq(registrationParticipants.participantType, 'student'))
+        .then(r => r[0]),
+      
       // Registrations by Event (by event name)
       db
         .select({
@@ -141,6 +149,7 @@ export default defineEventHandler(async (event) => {
     ])
     
     const participatingSchoolsCount = participatingSchoolsCountResult
+    const participatingStudentsCount = participatingStudentsCountResult
 
     // School performance breakdown - Get all schools first
     const allSchoolsList = await db
@@ -233,6 +242,7 @@ export default defineEventHandler(async (event) => {
         verifiedFaculty: verifiedFacultyCount.count,
         verificationRate: Math.round(verificationRate * 100) / 100,
         totalStudents: studentsCount.count,
+        participatingStudents: Number(participatingStudentsCount.count),
         totalRegistrations: registrationsCount.count,
       },
       trends: {
