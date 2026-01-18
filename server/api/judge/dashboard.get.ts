@@ -129,16 +129,13 @@ export default defineEventHandler(async (event) => {
     const participantCountsMap = new Map(participantCounts.map((p) => [p.registrationId, p.count]))
 
     // Format registrations with judgment status
+    // Optimized: Only store judge IDs that have judged (instead of full judge objects per registration)
     const formattedRegistrations = registrationsList.map((row) => {
       const registrationJudgments = judgmentsMap.get(row.registration.id) || new Map()
       const thisJudgeJudgment = thisJudgeJudgmentsMap.get(row.registration.id) || null
       
-      // Create judge status array showing which judges have completed judgments
-      const judgeStatus = eventJudgesList.map((ej) => ({
-        judgeId: ej.judgeId,
-        judgeName: ej.judgeName,
-        hasJudged: registrationJudgments.has(ej.judgeId),
-      }))
+      // Only store judge IDs that have completed judgments (compact format)
+      const judgedBy = Array.from(registrationJudgments.keys())
 
       return {
         id: row.registration.id,
@@ -153,13 +150,19 @@ export default defineEventHandler(async (event) => {
               updatedAt: thisJudgeJudgment.updatedAt,
             }
           : null,
-        judgeStatus, // Array of judges with their completion status
+        judgedBy, // Array of judge IDs that have completed judgments (optimized)
       }
     })
 
     // Calculate stats
     const totalRegistrations = formattedRegistrations.length
     const judgedRegistrations = formattedRegistrations.filter((r) => r.judgment).length
+
+    // Format judges list for event (moved here to avoid repetition in each registration)
+    const eventJudgesFormatted = eventJudgesList.map((ej) => ({
+      judgeId: ej.judgeId,
+      judgeName: ej.judgeName,
+    }))
 
     return {
       success: true,
@@ -181,6 +184,7 @@ export default defineEventHandler(async (event) => {
             pendingRegistrations: totalRegistrations - judgedRegistrations,
             assignedAt: assignedEvent.assignedAt,
             totalJudges: eventJudgesList.length,
+            judges: eventJudgesFormatted, // Full judges list (avoid repetition)
           }
         : null,
       registrations: formattedRegistrations,

@@ -175,8 +175,24 @@ const fetchDashboard = async () => {
     if (response.success) {
       event.value = response.event
       const regs = response.registrations || []
+      
+      // Reconstruct judgeStatus array from event.judges and registration.judgedBy
+      // This optimizes payload by avoiding repetition of judge data
+      const eventJudges = event.value?.judges || []
+      registrations.value = regs.map((reg: any) => {
+        const judgedBySet = new Set(reg.judgedBy || [])
+        return {
+          ...reg,
+          judgeStatus: eventJudges.map((judge: any) => ({
+            judgeId: judge.judgeId,
+            judgeName: judge.judgeName,
+            hasJudged: judgedBySet.has(judge.judgeId),
+          })),
+        }
+      })
+      
       // Sort: pending first, then completed
-      registrations.value = regs.sort((a: any, b: any) => {
+      registrations.value = registrations.value.sort((a: any, b: any) => {
         if (!a.judgment && b.judgment) return -1
         if (a.judgment && !b.judgment) return 1
         return 0
@@ -219,13 +235,31 @@ const handleJudgmentSubmit = async (score: number, comments: string | null) => {
     if (response.success) {
       const regIndex = registrations.value.findIndex((r) => r.id === selectedRegistration.value.id)
       if (regIndex !== -1) {
-        registrations.value[regIndex].judgment = {
+        const registration = registrations.value[regIndex]
+        registration.judgment = {
           id: response.judgment.id,
           score: response.judgment.score,
           comments: response.judgment.comments,
           createdAt: response.judgment.createdAt,
           updatedAt: response.judgment.updatedAt,
         }
+        
+        // Update judgedBy array if judge ID is not already included
+        const judgeId = judge.value?.id
+        if (judgeId && registration.judgedBy && !registration.judgedBy.includes(judgeId)) {
+          registration.judgedBy.push(judgeId)
+        } else if (judgeId && !registration.judgedBy) {
+          registration.judgedBy = [judgeId]
+        }
+        
+        // Reconstruct judgeStatus from updated judgedBy
+        const eventJudges = event.value?.judges || []
+        const judgedBySet = new Set(registration.judgedBy || [])
+        registration.judgeStatus = eventJudges.map((judgeItem: any) => ({
+          judgeId: judgeItem.judgeId,
+          judgeName: judgeItem.judgeName,
+          hasJudged: judgedBySet.has(judgeItem.judgeId),
+        }))
       }
       if (event.value) {
         const wasJudged = selectedRegistration.value.judgment !== null

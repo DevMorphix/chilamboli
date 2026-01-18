@@ -80,7 +80,6 @@ export const students = sqliteTable("students", {
     .$onUpdateFn(() => new Date()),
 }, (table) => ({
   schoolIdIdx: index("idx_students_school_id").on(table.schoolId),
-  addedByFacultyIdIdx: index("idx_students_added_by_faculty_id").on(table.addedByFacultyId),
 }))
 
 // Events table
@@ -175,7 +174,6 @@ export const registrationParticipants = sqliteTable("registration_participants",
     .$onUpdateFn(() => new Date()),
 }, (table) => ({
   registrationIdIdx: index("idx_registration_participants_registration_id").on(table.registrationId),
-  participantIdTypeIdx: index("idx_registration_participants_participant_id_type").on(table.participantId, table.participantType),
 }))
 
 // Judgments table - stores scores from judges for registrations
