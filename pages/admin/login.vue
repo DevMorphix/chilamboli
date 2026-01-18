@@ -82,8 +82,8 @@ const handleLogin = async () => {
     // Store admin data in localStorage
     localStorage.setItem('admin', JSON.stringify(response.admin))
 
-    // Navigate to dashboard
-    router.push('/admin/dashboard')
+    // Navigate to dashboard analytics
+    router.push('/admin/dashboard/analytics')
   } catch (err: any) {
     error.value = err.data?.message || 'Login failed. Please check your credentials.'
   } finally {

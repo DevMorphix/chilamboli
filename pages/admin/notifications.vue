@@ -5,7 +5,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div class="flex items-center justify-between">
           <div>
-            <NuxtLink to="/admin/dashboard#control" class="text-purple-600 hover:text-purple-700 text-sm mb-2 inline-block">
+            <NuxtLink to="/admin/dashboard/control-center" class="text-purple-600 hover:text-purple-700 text-sm mb-2 inline-block">
               ← Back to Dashboard
             </NuxtLink>
             <h1 class="text-2xl font-bold text-gray-900">Notifications Management</h1>

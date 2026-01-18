@@ -1,119 +1,49 @@
 <template>
-  <div class="min-h-screen bg-gray-50 relative grid grid-rows-[auto_1fr_auto]">
-    <!-- Header -->
-    <header class="bg-white shadow-sm border-b sticky top-0 z-10">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-        <div class="flex flex-row items-center justify-between gap-3 sm:gap-4">
-          <div class="flex-1 min-w-0">
-            <div class="flex flex-col items-start">
-              <h1 class="text-xl sm:text-2xl font-bold text-gray-900 truncate">Admin Dashboard</h1>
-              <p class="hidden lg:inline text-xs text-gray-600 truncate">Comprehensive System Insights & Performance Metrics</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2 sm:gap-4">
-            <div class="text-right flex-1 sm:flex-none min-w-0">
-              <p class="text-xs sm:text-sm font-medium text-gray-900 truncate">{{ admin?.email }}</p>
-              <p class="text-xs text-gray-500 truncate hidden sm:block">Administrator</p>
-            </div>
-            <button
-              @click="showPurgeModal = true"
-              :disabled="purgingCache"
-              class="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors border border-blue-500 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Reload data"
-            >
-              <svg 
-                v-if="!purgingCache"
-                class="w-5 h-5" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              <svg 
-                v-else
-                class="w-5 h-5 animate-spin" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
-            <button
-              @click="handleLogout"
-              class="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors border border-red-500 flex-shrink-0"
-              title="Logout"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8 w-full">
-      <!-- Tabs Navigation -->
-      <div class="border-b border-gray-200 mb-6">
-        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-          <button
-            @click="setActiveTab('analytics')"
-            :class="[
-              activeTab === 'analytics'
-                ? 'border-purple-500 text-purple-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-              'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors'
-            ]"
-          >
-            Analytics
-          </button>
-          <button
-            @click="setActiveTab('control')"
-            :class="[
-              activeTab === 'control'
-                ? 'border-purple-500 text-purple-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-              'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors'
-            ]"
-          >
-            Control Center
-          </button>
-          <button
-            @click="setActiveTab('explore')"
-            :class="[
-              activeTab === 'explore'
-                ? 'border-purple-500 text-purple-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
-              'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors'
-            ]"
-          >
-            Explore Data
-          </button>
-        </nav>
-      </div>
-
-      <!-- Analytics Tab -->
-      <div v-show="activeTab === 'analytics'">
+  <div>
+<!-- Analytics Tab -->
+      <div>
         <!-- Data Info Bar -->
         <div class="mb-6 flex items-center justify-between gap-4">
-        <div v-if="loading" class="flex items-center gap-2 text-sm text-gray-500">
-          <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          Loading analytics...
+          <div v-if="loading" class="flex items-center gap-2 text-sm text-gray-500">
+            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Loading analytics...
+          </div>
+          <div v-else-if="analytics.dataCapturedAt" class="flex items-center gap-2 text-xs sm:text-sm text-gray-600 bg-gray-50 rounded-lg px-3 sm:px-4 py-2 border border-gray-200">
+            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Data captured at: <span class="font-medium">{{ formatTimestamp(analytics.dataCapturedAt) }}</span></span>
+            <span v-if="analytics.cached" class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">Cached</span>
+          </div>
+          <button
+            @click="showPurgeModal = true"
+            :disabled="purgingCache"
+            class="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors border border-blue-500 flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Reload data"
+          >
+            <svg 
+              v-if="!purgingCache"
+              class="w-5 h-5" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <svg 
+              v-else
+              class="w-5 h-5 animate-spin" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
         </div>
-        <div v-else-if="analytics.dataCapturedAt" class="flex items-center gap-2 text-xs sm:text-sm text-gray-600 bg-gray-50 rounded-lg px-3 sm:px-4 py-2 border border-gray-200">
-          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span>Data captured at: <span class="font-medium">{{ formatTimestamp(analytics.dataCapturedAt) }}</span></span>
-          <span v-if="analytics.cached" class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">Cached</span>
-        </div>
-      </div>
 
       <!-- Overview Stats -->
       <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
@@ -449,67 +379,6 @@
       </div>
       </div>
 
-      <!-- Control Center Tab -->
-      <div v-show="activeTab === 'control'">
-        <!-- Control Center Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          <NuxtLink
-            to="/admin/judges"
-            class="bg-purple-600 hover:bg-purple-700 text-white rounded-lg shadow p-4 sm:p-6 transition-colors flex items-center justify-between group"
-          >
-            <div class="flex-1 min-w-0">
-              <h3 class="text-base sm:text-lg font-semibold">Manage Judges</h3>
-              <p class="text-purple-100 text-xs sm:text-sm mt-1">Create, assign, and manage judges</p>
-            </div>
-            <svg class="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </NuxtLink>
-
-          <NuxtLink
-            to="/admin/event-judges"
-            class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow p-4 sm:p-6 transition-colors flex items-center justify-between group"
-          >
-            <div class="flex-1 min-w-0">
-              <h3 class="text-base sm:text-lg font-semibold">Event-Judge Assignments</h3>
-              <p class="text-indigo-100 text-xs sm:text-sm mt-1">Assign judges to events and manage their assignments</p>
-            </div>
-            <svg class="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </NuxtLink>
-
-          <NuxtLink
-            to="/admin/notifications"
-            class="bg-green-600 hover:bg-green-700 text-white rounded-lg shadow p-4 sm:p-6 transition-colors flex items-center justify-between group"
-          >
-            <div class="flex-1 min-w-0">
-              <h3 class="text-base sm:text-lg font-semibold">Manage Notifications</h3>
-              <p class="text-green-100 text-xs sm:text-sm mt-1">Create and manage notifications for schools</p>
-            </div>
-            <svg class="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-1 transition-transform flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </NuxtLink>
-        </div>
-      </div>
-
-      <!-- Explore Data Tab -->
-      <div v-show="activeTab === 'explore'">
-        <div class="bg-white rounded-lg shadow p-12 text-center">
-          <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <h3 class="text-lg font-semibold text-gray-900 mb-2">Explore Data</h3>
-          <p class="text-gray-500">This section will be available soon.</p>
-        </div>
-      </div>
-
-    </main>
-
-    <!-- Footer -->
-    <Footer />
-
     <!-- Purge Cache Confirmation Modal -->
     <Teleport to="body">
       <Transition name="modal">
@@ -577,32 +446,12 @@
 </template>
 
 <script setup lang="ts">
-const router = useRouter()
-const route = useRoute()
-const { admin, checkAuth, logout } = useAdmin()
-
-// Initialize activeTab from URL hash or default to 'analytics'
-const getTabFromHash = (): 'analytics' | 'control' | 'explore' => {
-  const hash = route.hash.replace('#', '')
-  if (hash === 'analytics' || hash === 'control' || hash === 'explore') {
-    return hash
-  }
-  return 'analytics'
-}
-
-const activeTab = ref<'analytics' | 'control' | 'explore'>(getTabFromHash())
-
-// Watch for hash changes (e.g., browser back/forward)
-watch(() => route.hash, (newHash) => {
-  const tab = getTabFromHash()
-  activeTab.value = tab
+definePageMeta({
+  layout: 'admin'
 })
 
-// Update URL hash when tab changes
-const setActiveTab = (tab: 'analytics' | 'control' | 'explore') => {
-  activeTab.value = tab
-  router.push({ hash: `#${tab}` })
-}
+const { admin, checkAuth, logout } = useAdmin()
+
 const loading = ref(true)
 const purgingCache = ref(false)
 const showPurgeModal = ref(false)
@@ -1091,10 +940,6 @@ onMounted(async () => {
   }
   await fetchAnalytics()
 })
-
-const handleLogout = () => {
-  logout()
-}
 </script>
 
 <style scoped>
@@ -1119,4 +964,3 @@ const handleLogout = () => {
   opacity: 0;
 }
 </style>
-

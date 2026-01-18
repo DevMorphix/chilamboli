@@ -5,7 +5,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div class="flex items-center justify-between">
           <div>
-            <NuxtLink to="/admin/dashboard#control" class="text-purple-600 hover:text-purple-700 text-sm mb-2 inline-block">
+            <NuxtLink to="/admin/dashboard/control-center" class="text-purple-600 hover:text-purple-700 text-sm mb-2 inline-block">
               ← Back to Dashboard
             </NuxtLink>
             <h1 class="text-2xl font-bold text-gray-900">Event-Judge Assignments</h1>
@@ -259,13 +259,12 @@ const loadingEvents = ref(false)
 
 // Search
 const searchQuery = ref('')
+const searchTimeout = ref<NodeJS.Timeout | null>(null)
 
 // Pagination for Events
 const eventsMetadata = ref<any>(null)
 const eventsPage = ref(1)
 const eventsLimit = ref(10)
-
-let searchTimeout: NodeJS.Timeout | null = null
 
 // Assign Judges
 const showAssignJudgesModal = ref(false)
@@ -392,11 +391,12 @@ const removeJudgeFromEvent = async (assignment: any) => {
   }
 }
 
+// Debounced search with 300ms delay
 watch(searchQuery, () => {
-  if (searchTimeout) {
-    clearTimeout(searchTimeout)
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value)
   }
-  searchTimeout = setTimeout(() => {
+  searchTimeout.value = setTimeout(() => {
     eventsPage.value = 1
     fetchEvents()
   }, 300)
@@ -407,6 +407,13 @@ onMounted(async () => {
     return
   }
   await fetchEvents()
+})
+
+// Cleanup timeout on unmount
+onUnmounted(() => {
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value)
+  }
 })
 </script>
 
