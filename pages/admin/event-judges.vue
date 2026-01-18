@@ -120,8 +120,8 @@
                   :class="[
                     'flex items-center justify-between p-2 rounded-md transition-colors',
                     assignment.enabled
-                      ? 'bg-green-50 border-1 border-green-300 hover:bg-green-100'
-                      : 'bg-gray-50 border-1 border-gray-300 hover:bg-gray-100'
+                      ? 'bg-green-50 border border-green-300 hover:bg-green-100'
+                      : 'bg-gray-50 border border-gray-300 hover:bg-gray-100'
                   ]"
                 >
                   <div class="flex-1 min-w-0">
