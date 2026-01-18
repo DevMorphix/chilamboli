@@ -58,13 +58,13 @@
         </div>
 
         <!-- Registrations Grid - Mobile First -->
-        <div v-if="sortedRegistrations.length === 0" class="text-center py-12">
+        <div v-if="registrations.length === 0" class="text-center py-12">
           <p class="text-gray-500 text-sm">No registrations found for this event.</p>
         </div>
 
         <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div
-            v-for="registration in sortedRegistrations"
+            v-for="registration in registrations"
             :key="registration.id"
             @click="openJudgmentModal(registration)"
             class="bg-white rounded-lg shadow-sm p-4 cursor-pointer transition-all hover:shadow-md active:scale-[0.98]"
@@ -151,17 +151,6 @@ const progressPercentage = computed(() => {
   return Math.round((judgedCount.value / registrations.value.length) * 100)
 })
 
-// Sort registrations: pending first, then completed
-const sortedRegistrations = computed(() => {
-  return [...registrations.value].sort((a, b) => {
-    // Pending (no judgment) should come first
-    if (!a.judgment && b.judgment) return -1
-    if (a.judgment && !b.judgment) return 1
-    // If both have same status, maintain original order
-    return 0
-  })
-})
-
 const fetchDashboard = async () => {
   if (!judge.value?.id) return
   
@@ -189,13 +178,6 @@ const fetchDashboard = async () => {
             hasJudged: judgedBySet.has(judge.judgeId),
           })),
         }
-      })
-      
-      // Sort: pending first, then completed
-      registrations.value = registrations.value.sort((a: any, b: any) => {
-        if (!a.judgment && b.judgment) return -1
-        if (a.judgment && !b.judgment) return 1
-        return 0
       })
     }
   } catch (err: any) {
