@@ -72,7 +72,14 @@
           <div class="flex items-center justify-between">
             <div class="flex-1 min-w-0">
               <p class="text-xs sm:text-sm font-medium text-gray-600">Total Students</p>
-              <p class="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">{{ analytics.overview?.totalStudents || 0 }}</p>
+              <p class="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">
+                {{ analytics.overview?.participatingStudents || 0 }}/{{ analytics.overview?.totalStudents || 0 }}
+              </p>
+              <p class="text-xs text-gray-500 mt-1">
+                {{ analytics.overview?.totalStudents > 0 
+                  ? Math.round(((analytics.overview?.participatingStudents || 0) / analytics.overview.totalStudents) * 100) 
+                  : 0 }}% participating
+              </p>
             </div>
             <div class="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 ml-3">
               <svg class="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
