@@ -137,52 +137,13 @@
                         assignment.enabled
                           ? 'bg-orange-50 text-orange-600 hover:bg-orange-100 border-orange-200'
                           : 'bg-green-50 text-green-600 hover:bg-green-100 border-green-200',
-                        'p-1.5 rounded-md border transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-sm hover:shadow'
+                        'px-2 py-1 rounded-md border transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-sm hover:shadow text-xs font-medium'
                       ]"
                       title="Toggle assignment status"
                     >
-                      <svg
-                        v-if="togglingAssignmentId === assignment.assignmentId"
-                        class="w-4 h-4 animate-spin"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                      <svg
-                        v-else-if="assignment.enabled"
-                        class="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
-                        />
-                      </svg>
-                      <svg
-                        v-else
-                        class="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
+                      <span v-if="togglingAssignmentId === assignment.assignmentId">Loading...</span>
+                      <span v-else-if="assignment.enabled">Disable</span>
+                      <span v-else>Enable</span>
                     </button>
                     <!-- Remove Button -->
                     <button
