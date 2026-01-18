@@ -11,6 +11,39 @@
             <h1 class="text-2xl font-bold text-gray-900">Event-Judge Assignments</h1>
             <p class="text-sm text-gray-500 mt-1">Assign judges to events and manage their assignments</p>
           </div>
+          <div class="flex items-center gap-2">
+            <button
+              @click="purgePresentationCache"
+              :disabled="purgingPresentationCache"
+              :title="purgingPresentationCache ? 'Purging cache...' : 'Purge presentation leaderboard cache'"
+              :class="[
+                'inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors',
+                'hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+                'disabled:cursor-not-allowed disabled:opacity-50'
+              ]"
+            >
+              <svg
+                v-if="purgingPresentationCache"
+                class="h-5 w-5 animate-spin mr-2"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <svg
+                v-else
+                class="h-5 w-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>{{ purgingPresentationCache ? 'Purging...' : 'Purge Presentation Cache' }}</span>
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -84,23 +117,19 @@
                 <div
                   v-for="assignment in event.assignments"
                   :key="assignment.assignmentId"
-                  class="flex items-center justify-between p-2 bg-gray-50 rounded-md border border-gray-200 hover:bg-gray-100 transition-colors"
+                  :class="[
+                    'flex items-center justify-between p-2 rounded-md transition-colors',
+                    assignment.enabled
+                      ? 'bg-green-50 border-1 border-green-300 hover:bg-green-100'
+                      : 'bg-gray-50 border-1 border-gray-300 hover:bg-gray-100'
+                  ]"
                 >
                   <div class="flex-1 min-w-0">
                     <div class="font-medium text-sm text-gray-900 truncate">{{ assignment.judgeName }}</div>
                     <div class="text-xs text-gray-500">{{ assignment.judgeMobileNumber }}</div>
                   </div>
                   <div class="flex items-center gap-1.5 ml-2">
-                    <span
-                      :class="[
-                        assignment.enabled
-                          ? 'bg-green-100 text-green-700 border-green-200'
-                          : 'bg-gray-100 text-gray-600 border-gray-200',
-                        'px-2 py-0.5 rounded text-xs font-semibold border'
-                      ]"
-                    >
-                      {{ assignment.enabled ? 'Active' : 'Inactive' }}
-                    </span>
+                    <!-- Toggle Button -->
                     <button
                       @click="toggleAssignmentStatus(assignment)"
                       :disabled="togglingAssignmentId === assignment.assignmentId"
@@ -108,17 +137,88 @@
                         assignment.enabled
                           ? 'bg-orange-50 text-orange-600 hover:bg-orange-100 border-orange-200'
                           : 'bg-green-50 text-green-600 hover:bg-green-100 border-green-200',
-                        'px-2 py-1 rounded text-xs font-semibold border transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                        'p-1.5 rounded-md border transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-sm hover:shadow'
                       ]"
+                      title="Toggle assignment status"
                     >
-                      {{ togglingAssignmentId === assignment.assignmentId ? '...' : assignment.enabled ? 'Disable' : 'Enable' }}
+                      <svg
+                        v-if="togglingAssignmentId === assignment.assignmentId"
+                        class="w-4 h-4 animate-spin"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                      <svg
+                        v-else-if="assignment.enabled"
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                        />
+                      </svg>
+                      <svg
+                        v-else
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
                     </button>
+                    <!-- Remove Button -->
                     <button
                       @click="removeJudgeFromEvent(assignment)"
                       :disabled="removingAssignmentId === assignment.assignmentId"
-                      class="px-2 py-1 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 rounded text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-sm hover:shadow"
+                      title="Remove judge from event"
                     >
-                      {{ removingAssignmentId === assignment.assignmentId ? '...' : 'Remove' }}
+                      <svg
+                        v-if="removingAssignmentId === assignment.assignmentId"
+                        class="w-4 h-4 animate-spin"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                      <svg
+                        v-else
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
                     </button>
                   </div>
                 </div>
@@ -133,16 +233,57 @@
               </div>
             </div>
 
-            <!-- Action Button -->
-            <button
-              @click="openAssignJudgeModal(event)"
-              class="w-full px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all font-semibold text-xs shadow-sm hover:shadow-md flex items-center justify-center gap-1.5"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-              </svg>
-              Assign Judges
-            </button>
+            <!-- Action Buttons -->
+            <div class="flex gap-2 justify-end">
+              <button
+                v-if="!event.isCompleted"
+                @click="toggleEventCompletion(event, true)"
+                :disabled="markingCompleteId === event.id"
+                class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all font-semibold text-xs shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                {{ markingCompleteId === event.id ? 'Marking...' : 'Mark as Complete' }}
+              </button>
+              <button
+                v-if="event.isCompleted"
+                @click="toggleEventCompletion(event, false)"
+                :disabled="markingCompleteId === event.id"
+                class="px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-all font-semibold text-xs shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg
+                  v-if="markingCompleteId === event.id"
+                  class="w-4 h-4 animate-spin"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <svg
+                  v-else
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                {{ markingCompleteId === event.id ? 'Marking...' : 'Mark as Incomplete' }}
+              </button>
+              <button
+                @click="openAssignJudgeModal(event)"
+                :disabled="event.isCompleted"
+                class="px-3 py-2 bg-purple-600 text-white rounded-lg transition-all font-semibold text-xs shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                :class="event.isCompleted ? '' : 'hover:bg-purple-700 hover:shadow-md'"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Assign Judges
+              </button>
+            </div>
           </div>
         </div>
 
@@ -278,6 +419,12 @@ const assigningJudges = ref(false)
 const togglingAssignmentId = ref<string | null>(null)
 const removingAssignmentId = ref<string | null>(null)
 
+// Mark Event as Complete
+const markingCompleteId = ref<string | null>(null)
+
+// Purge Presentation Cache
+const purgingPresentationCache = ref(false)
+
 const fetchEvents = async () => {
   loadingEvents.value = true
   try {
@@ -388,6 +535,55 @@ const removeJudgeFromEvent = async (assignment: any) => {
     alert(err.data?.message || 'Failed to remove judge from event')
   } finally {
     removingAssignmentId.value = null
+  }
+}
+
+const toggleEventCompletion = async (eventItem: any, isCompleted: boolean) => {
+  const action = isCompleted ? 'mark as complete' : 'mark as incomplete'
+  const message = isCompleted 
+    ? `Are you sure you want to mark "${eventItem.name}" as complete? This event will be included in presentation leaderboards.`
+    : `Are you sure you want to mark "${eventItem.name}" as incomplete? This event will be removed from presentation leaderboards.`
+  
+  if (!confirm(message)) {
+    return
+  }
+
+  markingCompleteId.value = eventItem.id
+  try {
+    await $fetch(`/api/events/${eventItem.id}/mark-complete`, {
+      method: 'POST',
+      body: {
+        isCompleted,
+      },
+    })
+    await fetchEvents()
+  } catch (err: any) {
+    alert(err.data?.message || `Failed to ${action}`)
+  } finally {
+    markingCompleteId.value = null
+  }
+}
+
+const purgePresentationCache = async () => {
+  if (!confirm('Are you sure you want to purge presentation leaderboard cache? This will force fresh data to be fetched.')) {
+    return
+  }
+
+  purgingPresentationCache.value = true
+
+  try {
+    await $fetch('/api/leaderboard/purge-cache', {
+      method: 'POST',
+      body: {
+        context: 'presentation',
+      },
+    })
+    alert('Presentation cache purged successfully.')
+  } catch (err) {
+    console.error('Failed to purge presentation cache:', err)
+    alert('Failed to purge presentation cache. Please try again.')
+  } finally {
+    purgingPresentationCache.value = false
   }
 }
 

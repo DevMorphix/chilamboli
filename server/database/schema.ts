@@ -80,6 +80,7 @@ export const students = sqliteTable("students", {
     .$onUpdateFn(() => new Date()),
 }, (table) => ({
   schoolIdIdx: index("idx_students_school_id").on(table.schoolId),
+  genderIdx: index("idx_students_gender").on(table.gender),
 }))
 
 // Events table
@@ -91,12 +92,14 @@ export const events = sqliteTable("events", {
   ageCategory: text("age_category", { enum: ["Sub Junior", "Junior", "Senior", "Combined", "Special"] }).notNull(),
   gender: text("gender", { enum: ["Boys", "Girls", "All"] }),
   maxTeamSize: integer("max_team_size"),
+  isCompleted: integer("is_completed", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),
 }, (table) => ({
   nameIdx: index("idx_events_name").on(table.name),
   createdAtIdx: index("idx_events_created_at").on(table.createdAt),
+  isCompletedIdx: index("idx_events_is_completed").on(table.isCompleted),
 }))
 
 // Judges table
@@ -174,6 +177,7 @@ export const registrationParticipants = sqliteTable("registration_participants",
     .$onUpdateFn(() => new Date()),
 }, (table) => ({
   registrationIdIdx: index("idx_registration_participants_registration_id").on(table.registrationId),
+  participantTypeIdx: index("idx_registration_participants_participant_type").on(table.participantType),
 }))
 
 // Judgments table - stores scores from judges for registrations

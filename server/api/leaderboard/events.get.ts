@@ -1,59 +1,145 @@
 import { useDB } from "../../utils/db"
 import { events, registrations, judgments, eventJudges, schools } from "../../database/schema"
-import { eq, sql } from "drizzle-orm"
+import { eq, sql, inArray, type SQL } from "drizzle-orm"
 import { calculateGrade } from "../../utils/grading"
+
+const CACHE_PREFIX = "leaderboard:events:"
+const CACHE_TTL = 60 * 60 // 1 hour in seconds
+
+interface EventInfo {
+  id: string
+  name: string
+  eventType: string
+  ageCategory: string
+}
+
+interface LeaderboardEntry {
+  registrationId: string
+  teamName: string | null
+  schoolId: string | null
+  schoolName: string | null
+  schoolCode: string | null
+  totalScore: number
+  normalizedScore: number
+  grade: string
+  gradePoint: number
+  rank: number
+}
+
+interface EventLeaderboard {
+  event: EventInfo
+  leaderboard: LeaderboardEntry[]
+  totalResults: number
+}
+
+interface CachedEventsLeaderboard {
+  data: {
+    success: true
+    events: EventLeaderboard[]
+  }
+  capturedAt: number
+}
+
+function getCacheKey(context: string, resultsLimit: number): string {
+  return `${CACHE_PREFIX}${context}:resultsLimit:${resultsLimit}`
+}
 
 // Get leaderboard grouped by event
 export default defineEventHandler(async (event) => {
   const db = useDB(event)
+  const query = getQuery(event)
+  const context = (query.context as string) || "admin" // "presentation" or "admin"
+  const resultsLimit = parseInt((query.resultsLimit as string) || "5") // Results per event
+  
+  const storage = useStorage("kv")
+  const cacheKey = getCacheKey(context, resultsLimit)
 
   try {
-    // Get all events
-    const allEvents = await db.select().from(events).orderBy(events.name)
-
-    // Get total judges per event
-    const eventJudgesCount = await db
-      .select({
-        eventId: eventJudges.eventId,
-        judgeCount: sql<number>`COUNT(DISTINCT ${eventJudges.judgeId})`.as("judge_count"),
-      })
-      .from(eventJudges)
-      .groupBy(eventJudges.eventId)
+    // Try to get cached data
+    const cached = await storage.getItem<CachedEventsLeaderboard>(cacheKey)
+    if (cached) {
+      return {
+        ...cached.data,
+        cached: true,
+        dataCapturedAt: cached.capturedAt,
+      }
+    }
+    
+    // Filter events based on context
+    const whereClause: SQL<unknown> | undefined = context === "presentation" 
+      ? eq(events.isCompleted, true) 
+      : undefined
+    
+    // Get all events and judge counts simultaneously
+    const [allEvents, eventJudgesCount] = await Promise.all([
+      // Get all events (no pagination)
+      db
+        .select()
+        .from(events)
+        .where(whereClause)
+        .orderBy(events.name),
+      // Get judge counts
+      db
+        .select({
+          eventId: eventJudges.eventId,
+          judgeCount: sql<number>`COUNT(DISTINCT ${eventJudges.judgeId})`.as("judge_count"),
+        })
+        .from(eventJudges)
+        .groupBy(eventJudges.eventId),
+    ])
 
     const judgesCountMap = new Map(
       eventJudgesCount.map((ej) => [ej.eventId, ej.judgeCount])
     )
 
-    // For each event, get top registrations
-    const eventLeaderboards = await Promise.all(
-      allEvents.map(async (eventItem) => {
-        const results = await db
-          .select({
-            registrationId: registrations.id,
-            teamName: registrations.teamName,
-            schoolId: registrations.schoolId,
-            schoolName: schools.name,
-            schoolCode: schools.schoolCode,
-            totalScore: sql<number>`COALESCE(SUM(${judgments.score}), 0)`.as("total_score"),
-            judgeCount: sql<number>`COUNT(DISTINCT ${judgments.judgeId})`.as("judge_count"),
-          })
-          .from(registrations)
-          .leftJoin(schools, eq(registrations.schoolId, schools.id))
-          .leftJoin(judgments, eq(registrations.id, judgments.registrationId))
-          .where(eq(registrations.eventId, eventItem.id))
-          .groupBy(registrations.id, schools.id)
+    // Get event IDs to filter registrations - optimize query by filtering in SQL
+    const eventIds = allEvents.map((e) => e.id)
+    
+    // Single query: Get registrations with scores only for relevant events (filter in SQL)
+    let registrationQuery = db
+      .select({
+        eventId: registrations.eventId,
+        registrationId: registrations.id,
+        teamName: registrations.teamName,
+        schoolId: registrations.schoolId,
+        schoolName: schools.name,
+        schoolCode: schools.schoolCode,
+        totalScore: sql<number>`COALESCE(SUM(${judgments.score}), 0)`.as("total_score"),
+        judgeCount: sql<number>`COUNT(DISTINCT ${judgments.judgeId})`.as("judge_count"),
+      })
+      .from(registrations)
+      .innerJoin(judgments, eq(registrations.id, judgments.registrationId))
+      .leftJoin(schools, eq(registrations.schoolId, schools.id))
+    
+    // Filter by event IDs in SQL instead of memory
+    if (eventIds.length > 0) {
+      registrationQuery = registrationQuery.where(inArray(registrations.eventId, eventIds))
+    }
+    
+    const allResults = await registrationQuery
+      .groupBy(registrations.id, schools.id)
+      .having(sql`COALESCE(SUM(${judgments.score}), 0) > 0`)
+
+    // Group results by event
+    const resultsByEvent = new Map<string, typeof allResults>()
+    for (const result of allResults) {
+      const existing = resultsByEvent.get(result.eventId) || []
+      resultsByEvent.set(result.eventId, [...existing, result])
+    }
+
+    // Build leaderboard for each event
+    const eventLeaderboards = allEvents
+      .map((eventItem) => {
+        const results = resultsByEvent.get(eventItem.id) || []
+        if (results.length === 0) return null
 
         const maxScore = judgesCountMap.get(eventItem.id) || 1
         const maxPossibleScore = maxScore * 10
 
-        // Filter out dummy data: registrations with no judgments
-        // Event results use raw scores (sum of judgments) for ranking, not grade points
         const leaderboard = results
-          .filter((result) => (result.judgeCount || 0) > 0 && (result.totalScore || 0) > 0)
           .map((result) => {
             const totalScore = result.totalScore || 0
             const gradeInfo = calculateGrade(totalScore, maxPossibleScore)
-
             return {
               registrationId: result.registrationId,
               teamName: result.teamName,
@@ -66,13 +152,9 @@ export default defineEventHandler(async (event) => {
               gradePoint: gradeInfo.gradePoint,
             }
           })
-          // Sort by raw total score for event results (not by grade point)
           .sort((a, b) => b.totalScore - a.totalScore)
-          .slice(0, 10)
-          .map((item, index) => ({
-            ...item,
-            rank: index + 1,
-          }))
+          .slice(0, resultsLimit)
+          .map((item, index) => ({ ...item, rank: index + 1 }))
 
         return {
           event: {
@@ -82,17 +164,21 @@ export default defineEventHandler(async (event) => {
             ageCategory: eventItem.ageCategory,
           },
           leaderboard,
+          totalResults: results.length, // Total results available for this event
         }
       })
-    )
+      .filter((el): el is NonNullable<typeof el> => el !== null && el.leaderboard.length > 0)
 
-    return {
-      success: true,
-      events: eventLeaderboards.filter((el) => el.leaderboard.length > 0),
+    const result = {
+      success: true as const,
+      events: eventLeaderboards,
     }
-  } catch (error: any) {
-    console.error("Error fetching event leaderboards:", error)
-
+    
+    await storage.setItem(cacheKey, { data: result, capturedAt: Date.now() }, { ttl: CACHE_TTL })
+    return result
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    console.error("Error fetching event leaderboards:", errorMessage)
     throw createError({
       statusCode: 500,
       message: "Failed to fetch event leaderboards",
