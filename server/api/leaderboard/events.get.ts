@@ -1,5 +1,5 @@
 import { useDB } from "../../utils/db"
-import { events, registrations, judgments, eventJudges, schools, registrationParticipants, students } from "../../database/schema"
+import { events, registrations, judgments, eventJudges, schools, registrationParticipants, students, positionRewards } from "../../database/schema"
 import { eq, sql, inArray, and, type SQL } from "drizzle-orm"
 import { calculateGrade } from "../../utils/grading"
 
@@ -23,6 +23,7 @@ interface LeaderboardEntry {
   normalizedScore: number
   grade: string
   gradePoint: number
+  rewardPoints: number
   rank: number
 }
 
@@ -129,21 +130,29 @@ export default defineEventHandler(async (event) => {
 
     // Fetch student names per registration (for individual events where teamName is blank)
     const registrationIds = allResults.map((r) => r.registrationId)
-    const participantRows = registrationIds.length > 0
-      ? await db
-          .select({
-            registrationId: registrationParticipants.registrationId,
-            studentName: students.studentName,
-          })
-          .from(registrationParticipants)
-          .innerJoin(students, eq(registrationParticipants.participantId, students.id))
-          .where(
-            and(
-              eq(registrationParticipants.participantType, "student"),
-              inArray(registrationParticipants.registrationId, registrationIds)
+    const [participantRows, rewards] = await Promise.all([
+      registrationIds.length > 0
+        ? db
+            .select({
+              registrationId: registrationParticipants.registrationId,
+              studentName: students.studentName,
+            })
+            .from(registrationParticipants)
+            .innerJoin(students, eq(registrationParticipants.participantId, students.id))
+            .where(
+              and(
+                eq(registrationParticipants.participantType, "student"),
+                inArray(registrationParticipants.registrationId, registrationIds)
+              )
             )
-          )
-      : []
+        : [],
+      registrationIds.length > 0
+        ? db
+            .select()
+            .from(positionRewards)
+            .where(inArray(positionRewards.registrationId, registrationIds))
+        : [],
+    ])
     const studentNamesByRegId = new Map<string, string>()
     for (const row of participantRows) {
       const existing = studentNamesByRegId.get(row.registrationId) || ""
@@ -152,6 +161,7 @@ export default defineEventHandler(async (event) => {
         existing ? `${existing}, ${row.studentName}` : row.studentName
       )
     }
+    const rewardsMap = new Map(rewards.map((r) => [r.registrationId, r.rewardPoints]))
 
     // Build leaderboard for each event
     const eventLeaderboards = allEvents
@@ -166,6 +176,7 @@ export default defineEventHandler(async (event) => {
           .map((result) => {
             const totalScore = result.totalScore || 0
             const gradeInfo = calculateGrade(totalScore, maxPossibleScore)
+            const rewardPoints = rewardsMap.get(result.registrationId) || 0
             return {
               registrationId: result.registrationId,
               teamName: result.teamName || studentNamesByRegId.get(result.registrationId) || null,
@@ -175,7 +186,8 @@ export default defineEventHandler(async (event) => {
               totalScore: Math.round(totalScore * 10) / 10,
               normalizedScore: gradeInfo.normalizedScore,
               grade: gradeInfo.grade,
-              gradePoint: gradeInfo.gradePoint,
+              gradePoint: gradeInfo.gradePoint + rewardPoints,
+              rewardPoints: rewardPoints,
             }
           })
           .sort((a, b) => b.totalScore - a.totalScore)

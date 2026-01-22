@@ -46,17 +46,6 @@
       <div class="border-b border-gray-200">
         <nav class="-mb-px flex space-x-8 overflow-x-auto">
           <button
-            @click="leaderboardTab = 'overall'"
-            :class="[
-              'py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap',
-              leaderboardTab === 'overall'
-                ? 'border-purple-500 text-purple-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            ]"
-          >
-            Overall Rankings
-          </button>
-          <button
             @click="leaderboardTab = 'events'"
             :class="[
               'py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap',
@@ -100,94 +89,6 @@
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
       Loading leaderboards...
-    </div>
-
-    <!-- Overall Leaderboard -->
-    <div v-else-if="leaderboardTab === 'overall'">
-      <div v-if="overallLeaderboard.length === 0" class="rounded-lg border border-gray-200 bg-white py-12 text-center">
-        <p class="text-gray-500">No rankings available yet.</p>
-      </div>
-      <div v-else class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        <div class="border-b border-gray-200 bg-purple-50 px-6 py-4">
-          <h2 class="text-lg font-semibold text-gray-900">Overall Rankings</h2>
-          <p v-if="dataCapturedAt" class="mt-1 text-xs text-gray-500">
-            Last updated: {{ formatTimestamp(dataCapturedAt) }}
-            <span v-if="cached" class="ml-2 rounded bg-purple-100 px-2 py-0.5 text-purple-700">Cached</span>
-          </p>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Rank</th>
-                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Team Name</th>
-                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">School</th>
-                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">School Code</th>
-                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Event</th>
-                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Event Type</th>
-                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Age Category</th>
-                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Total Score</th>
-                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Normalized Score</th>
-                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Grade</th>
-                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Grade Points</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200 bg-white">
-              <tr
-                v-for="(entry, index) in overallLeaderboard"
-                :key="entry.registrationId"
-                class="transition-colors hover:bg-gray-50"
-              >
-                <td class="whitespace-nowrap px-4 py-3">
-                  <div class="flex items-center">
-                    <span v-if="index === 0" class="text-xl">🥇</span>
-                    <span v-else-if="index === 1" class="text-xl">🥈</span>
-                    <span v-else-if="index === 2" class="text-xl">🥉</span>
-                    <span v-else class="text-sm font-semibold text-gray-900">{{ entry.rank }}</span>
-                  </div>
-                </td>
-                <td class="px-4 py-3">
-                  <div class="text-sm font-medium text-gray-900">
-                    {{ entry.teamName || '-' }}
-                  </div>
-                </td>
-                <td class="px-4 py-3">
-                  <div class="text-sm text-gray-900">{{ entry.schoolName || '-' }}</div>
-                </td>
-                <td class="px-4 py-3">
-                  <code class="text-xs font-mono text-gray-600">{{ entry.schoolCode || '-' }}</code>
-                </td>
-                <td class="px-4 py-3">
-                  <div class="text-sm text-gray-900">{{ entry.eventName }}</div>
-                </td>
-                <td class="px-4 py-3">
-                  <span class="text-xs text-gray-600">{{ entry.eventType }}</span>
-                </td>
-                <td class="px-4 py-3">
-                  <span class="text-xs text-gray-600">{{ entry.ageCategory }}</span>
-                </td>
-                <td class="whitespace-nowrap px-4 py-3">
-                  <div class="text-sm font-semibold text-gray-900">{{ entry.totalScore.toFixed(1) }}</div>
-                </td>
-                <td class="whitespace-nowrap px-4 py-3">
-                  <div class="text-sm font-semibold text-purple-600">{{ entry.normalizedScore.toFixed(1) }}</div>
-                </td>
-                <td class="whitespace-nowrap px-4 py-3">
-                  <span
-                    class="rounded-full px-2 py-1 text-xs font-semibold"
-                    :class="getGradeColor(entry.grade)"
-                  >
-                    {{ entry.grade }}
-                  </span>
-                </td>
-                <td class="whitespace-nowrap px-4 py-3">
-                  <div class="text-sm font-semibold text-blue-600">{{ entry.gradePoint }}</div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
 
     <!-- Events Leaderboard -->
@@ -331,6 +232,7 @@
                 <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Rank</th>
                 <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">School Name</th>
                 <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">School Code</th>
+                <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Location</th>
                 <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Total Grade Points</th>
               </tr>
             </thead>
@@ -353,6 +255,9 @@
                 </td>
                 <td class="px-4 py-3">
                   <code class="text-xs font-mono text-gray-600">{{ entry.schoolCode || '-' }}</code>
+                </td>
+                <td class="px-4 py-3">
+                  <div class="text-sm text-gray-600">{{ entry.location || 'Unknown' }}</div>
                 </td>
                 <td class="whitespace-nowrap px-4 py-3">
                   <div class="text-sm font-semibold text-blue-600">{{ entry.totalGradePoints.toFixed(1) }}</div>
@@ -426,6 +331,7 @@ interface LeaderboardEntry {
   registrationId?: string
   schoolId?: string
   location?: string
+  totalGradePoints?: number
   teamName?: string | null
   schoolName?: string | null
   schoolCode?: string | null
@@ -463,12 +369,11 @@ definePageMeta({
 })
 
 // State
-type LeaderboardTab = 'overall' | 'events' | 'schools' | 'districts'
+type LeaderboardTab = 'events' | 'schools' | 'districts'
 
-const leaderboardTab = ref<LeaderboardTab>('overall')
+const leaderboardTab = ref<LeaderboardTab>('events')
 const leaderboardLoading = ref(false)
 const purgingAdminCache = ref(false)
-const overallLeaderboard = ref<LeaderboardEntry[]>([])
 const eventLeaderboards = ref<EventLeaderboard[]>([])
 const schoolLeaderboard = ref<LeaderboardEntry[]>([])
 const districtLeaderboard = ref<LeaderboardEntry[]>([])
@@ -537,9 +442,6 @@ const loadLeaderboards = async () => {
   
   try {
     switch (leaderboardTab.value) {
-      case 'overall':
-        await fetchLeaderboard('event', overallLeaderboard)
-        break
       case 'events':
         await fetchEventLeaderboards()
         break
@@ -571,7 +473,6 @@ const purgeCache = async (context: 'admin') => {
     })
     // Reload data after purging cache
     // Clear all local state to ensure fresh data
-    overallLeaderboard.value = []
     eventLeaderboards.value = []
     schoolLeaderboard.value = []
     districtLeaderboard.value = []

@@ -236,6 +236,26 @@ export const notificationRecipients = sqliteTable("notification_recipients", {
   notificationIdSchoolIdUniqueIdx: uniqueIndex("idx_notification_recipients_notification_id_school_id").on(table.notificationId, table.schoolId),
 }))
 
+// Position rewards table - stores reward points for top 3 positions when event results are published
+export const positionRewards = sqliteTable("position_rewards", {
+  id: text("id").primaryKey(),
+  registrationId: text("registration_id")
+    .notNull()
+    .references(() => registrations.id, { onDelete: "cascade" }),
+  eventId: text("event_id")
+    .notNull()
+    .references(() => events.id, { onDelete: "cascade" }),
+  position: integer("position").notNull(), // 1, 2, or 3
+  rewardPoints: integer("reward_points").notNull(), // 10, 5, or 3
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+}, (table) => ({
+  registrationIdIdx: index("idx_position_rewards_registration_id").on(table.registrationId),
+  eventIdIdx: index("idx_position_rewards_event_id").on(table.eventId),
+  registrationIdEventIdUniqueIdx: uniqueIndex("idx_position_rewards_registration_id_event_id").on(table.registrationId, table.eventId),
+}))
+
 // Relations
 export const schoolsRelations = relations(schools, ({ many }) => ({
   faculty: many(faculty),
@@ -282,6 +302,7 @@ export const studentsRelations = relations(students, ({ one, many }) => ({
 export const eventsRelations = relations(events, ({ many }) => ({
   registrations: many(registrations),
   judgeAssignments: many(eventJudges),
+  positionRewards: many(positionRewards),
 }))
 
 export const judgesRelations = relations(judges, ({ many }) => ({
@@ -315,6 +336,7 @@ export const registrationsRelations = relations(registrations, ({ one, many }) =
   }),
   participants: many(registrationParticipants),
   judgments: many(judgments),
+  positionRewards: many(positionRewards),
 }))
 
 export const judgmentsRelations = relations(judgments, ({ one }) => ({
@@ -356,6 +378,17 @@ export const notificationRecipientsRelations = relations(notificationRecipients,
   }),
 }))
 
+export const positionRewardsRelations = relations(positionRewards, ({ one }) => ({
+  registration: one(registrations, {
+    fields: [positionRewards.registrationId],
+    references: [registrations.id],
+  }),
+  event: one(events, {
+    fields: [positionRewards.eventId],
+    references: [events.id],
+  }),
+}))
+
 // Type exports
 export type School = typeof schools.$inferSelect
 export type NewSchool = typeof schools.$inferInsert
@@ -381,3 +414,5 @@ export type EventJudge = typeof eventJudges.$inferSelect
 export type NewEventJudge = typeof eventJudges.$inferInsert
 export type Judgment = typeof judgments.$inferSelect
 export type NewJudgment = typeof judgments.$inferInsert
+export type PositionReward = typeof positionRewards.$inferSelect
+export type NewPositionReward = typeof positionRewards.$inferInsert

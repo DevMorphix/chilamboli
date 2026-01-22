@@ -7,6 +7,7 @@ import {
   schools,
   students,
   registrationParticipants,
+  positionRewards,
 } from "../../database/schema"
 import { eq, sql, and, inArray } from "drizzle-orm"
 import { calculateGrade } from "../../utils/grading"
@@ -193,6 +194,7 @@ export default defineEventHandler(async (event) => {
       // Get registrations with scores only (filter in SQL)
       const registrationResults = await db
         .select({
+          registrationId: registrations.id,
           eventId: registrations.eventId,
           schoolId: registrations.schoolId,
           schoolName: schools.name,
@@ -207,17 +209,28 @@ export default defineEventHandler(async (event) => {
         .groupBy(registrations.id, schools.id)
         .having(sql`COALESCE(SUM(${judgments.score}), 0) > 0`)
 
-      // Calculate grade points and aggregate
+      // Get position rewards for these registrations
+      const registrationIds = registrationResults.map((r) => r.registrationId).filter(Boolean)
+      const rewards = registrationIds.length > 0
+        ? await db
+            .select()
+            .from(positionRewards)
+            .where(inArray(positionRewards.registrationId, registrationIds))
+        : []
+      const rewardsMap = new Map(rewards.map((r) => [r.registrationId, r.rewardPoints]))
+
+      // Calculate grade points and aggregate (including reward points)
       const registrationsWithGradePoints = registrationResults.map((r) => {
         const maxScore = judgesCountMap.get(r.eventId) || 1
         const gradeInfo = calculateGrade(r.totalScore || 0, maxScore * 10)
-        return { ...r, gradePoint: gradeInfo.gradePoint }
+        const rewardPoints = rewardsMap.get(r.registrationId) || 0
+        return { ...r, gradePoint: gradeInfo.gradePoint + rewardPoints }
       })
 
       if (type === "school") {
         const schoolMap = new Map<
           string,
-          { schoolId: string; schoolName: string; schoolCode: string; totalGradePoints: number }
+          { schoolId: string; schoolName: string; schoolCode: string; location: string; totalGradePoints: number }
         >()
 
         for (const reg of registrationsWithGradePoints) {
@@ -230,6 +243,7 @@ export default defineEventHandler(async (event) => {
               schoolId: reg.schoolId,
               schoolName: reg.schoolName || "",
               schoolCode: reg.schoolCode || "",
+              location: reg.location || "Unknown",
               totalGradePoints: reg.gradePoint,
             })
           }
@@ -300,10 +314,21 @@ export default defineEventHandler(async (event) => {
       .groupBy(registrations.id, events.id, schools.id)
       .having(sql`COALESCE(SUM(${judgments.score}), 0) > 0`)
 
+    // Get position rewards for these registrations
+    const registrationIds = results.map((r) => r.registrationId).filter(Boolean)
+    const rewards = registrationIds.length > 0
+      ? await db
+          .select()
+          .from(positionRewards)
+          .where(inArray(positionRewards.registrationId, registrationIds))
+      : []
+    const rewardsMap = new Map(rewards.map((r) => [r.registrationId, r.rewardPoints]))
+
     const leaderboard = results
       .map((r) => {
         const maxScore = judgesCountMap.get(r.eventId) || 1
         const gradeInfo = calculateGrade(r.totalScore || 0, maxScore * 10)
+        const rewardPoints = rewardsMap.get(r.registrationId) || 0
         return {
           registrationId: r.registrationId,
           eventId: r.eventId,
@@ -317,7 +342,8 @@ export default defineEventHandler(async (event) => {
           totalScore: Math.round(r.totalScore * 10) / 10,
           normalizedScore: gradeInfo.normalizedScore,
           grade: gradeInfo.grade,
-          gradePoint: gradeInfo.gradePoint,
+          gradePoint: gradeInfo.gradePoint + rewardPoints,
+          rewardPoints: rewardPoints,
         }
       })
       .sort((a, b) => b.totalScore - a.totalScore)

@@ -205,7 +205,7 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
-                {{ markingCompleteId === event.id ? 'Marking...' : 'Mark as Complete' }}
+                {{ markingCompleteId === event.id ? 'Publishing...' : 'Publish Results' }}
               </button>
               <button
                 v-if="event.isCompleted"
@@ -231,7 +231,7 @@
                 >
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-                {{ markingCompleteId === event.id ? 'Marking...' : 'Mark as Incomplete' }}
+                {{ markingCompleteId === event.id ? 'Unpublishing...' : 'Unpublish Results' }}
               </button>
               <button
                 @click="openAssignJudgeModal(event)"
@@ -380,7 +380,7 @@ const assigningJudges = ref(false)
 const togglingAssignmentId = ref<string | null>(null)
 const removingAssignmentId = ref<string | null>(null)
 
-// Mark Event as Complete
+// Publish/Unpublish Event Results
 const markingCompleteId = ref<string | null>(null)
 
 // Purge Presentation Cache
@@ -500,10 +500,10 @@ const removeJudgeFromEvent = async (assignment: any) => {
 }
 
 const toggleEventCompletion = async (eventItem: any, isCompleted: boolean) => {
-  const action = isCompleted ? 'mark as complete' : 'mark as incomplete'
+  const action = isCompleted ? 'publish results' : 'unpublish results'
   const message = isCompleted 
-    ? `Are you sure you want to mark "${eventItem.name}" as complete? This event will be included in presentation leaderboards.`
-    : `Are you sure you want to mark "${eventItem.name}" as incomplete? This event will be removed from presentation leaderboards.`
+    ? `Are you sure you want to publish results for "${eventItem.name}"? This event will be included in presentation leaderboards.`
+    : `Are you sure you want to unpublish results for "${eventItem.name}"? This event will be removed from presentation leaderboards.`
   
   if (!confirm(message)) {
     return
