@@ -1,6 +1,6 @@
 import { useDB } from "../../utils/db"
-import { events, registrations, judgments, eventJudges, schools } from "../../database/schema"
-import { eq, sql, inArray, type SQL } from "drizzle-orm"
+import { events, registrations, judgments, eventJudges, schools, registrationParticipants, students } from "../../database/schema"
+import { eq, sql, inArray, and, type SQL } from "drizzle-orm"
 import { calculateGrade } from "../../utils/grading"
 
 const CACHE_PREFIX = "leaderboard:events:"
@@ -127,6 +127,32 @@ export default defineEventHandler(async (event) => {
       resultsByEvent.set(result.eventId, [...existing, result])
     }
 
+    // Fetch student names per registration (for individual events where teamName is blank)
+    const registrationIds = allResults.map((r) => r.registrationId)
+    const participantRows = registrationIds.length > 0
+      ? await db
+          .select({
+            registrationId: registrationParticipants.registrationId,
+            studentName: students.studentName,
+          })
+          .from(registrationParticipants)
+          .innerJoin(students, eq(registrationParticipants.participantId, students.id))
+          .where(
+            and(
+              eq(registrationParticipants.participantType, "student"),
+              inArray(registrationParticipants.registrationId, registrationIds)
+            )
+          )
+      : []
+    const studentNamesByRegId = new Map<string, string>()
+    for (const row of participantRows) {
+      const existing = studentNamesByRegId.get(row.registrationId) || ""
+      studentNamesByRegId.set(
+        row.registrationId,
+        existing ? `${existing}, ${row.studentName}` : row.studentName
+      )
+    }
+
     // Build leaderboard for each event
     const eventLeaderboards = allEvents
       .map((eventItem) => {
@@ -142,7 +168,7 @@ export default defineEventHandler(async (event) => {
             const gradeInfo = calculateGrade(totalScore, maxPossibleScore)
             return {
               registrationId: result.registrationId,
-              teamName: result.teamName,
+              teamName: result.teamName || studentNamesByRegId.get(result.registrationId) || null,
               schoolId: result.schoolId,
               schoolName: result.schoolName,
               schoolCode: result.schoolCode,

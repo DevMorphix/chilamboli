@@ -601,7 +601,7 @@ const getGradeColor = (grade: string) => {
     'C': 'bg-yellow-100 text-yellow-800',
     'D+': 'bg-orange-100 text-orange-800',
     'D': 'bg-orange-100 text-orange-800',
-    'F': 'bg-red-100 text-red-800',
+    'E': 'bg-red-100 text-red-800',
   }
   return colors[grade] || 'bg-gray-100 text-gray-800'
 }
