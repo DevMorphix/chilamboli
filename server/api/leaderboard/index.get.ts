@@ -167,52 +167,100 @@ export default defineEventHandler(async (event) => {
       return result
     }
 
-    // Get judge counts - optimize by only fetching for relevant events
-    // If we have completedEventIds, only fetch counts for those events
     let eventJudgesCountQuery = db
       .select({
         eventId: eventJudges.eventId,
         judgeCount: sql<number>`COUNT(DISTINCT ${eventJudges.judgeId})`.as("judge_count"),
       })
       .from(eventJudges)
-    
-    // Filter by relevant events if we know them
     if (completedEventIds && completedEventIds.length > 0) {
       eventJudgesCountQuery = eventJudgesCountQuery.where(inArray(eventJudges.eventId, completedEventIds))
     } else if (eventId) {
       eventJudgesCountQuery = eventJudgesCountQuery.where(eq(eventJudges.eventId, eventId))
     }
-    
-    const eventJudgesCount = await eventJudgesCountQuery.groupBy(eventJudges.eventId)
-    const judgesCountMap = new Map(eventJudgesCount.map((ej) => [ej.eventId, ej.judgeCount]))
 
-    // School or district leaderboard
-    if (type === "school" || type === "district" || type === "location") {
-      // Build where clause to filter by completed events if context is presentation
-      const whereConditions: any[] = []
-      if (completedEventIds && completedEventIds.length > 0) {
-        whereConditions.push(inArray(registrations.eventId, completedEventIds))
+    const schoolDistrictWhereConditions: any[] = []
+    if (completedEventIds && completedEventIds.length > 0) {
+      schoolDistrictWhereConditions.push(inArray(registrations.eventId, completedEventIds))
+    }
+    const schoolDistrictWhereClause =
+      schoolDistrictWhereConditions.length > 0 ? and(...schoolDistrictWhereConditions) : undefined
+
+    const eventWhereConditions: any[] = []
+    if (eventId) eventWhereConditions.push(eq(registrations.eventId, eventId))
+    if (completedEventIds && completedEventIds.length > 0) {
+      eventWhereConditions.push(inArray(registrations.eventId, completedEventIds))
+    }
+    const eventWhereClause = eventWhereConditions.length > 0 ? and(...eventWhereConditions) : undefined
+
+    type SchoolDistrictRow = {
+      registrationId: string
+      eventId: string
+      schoolId: string
+      schoolName: string | null
+      schoolCode: string | null
+      location: string | null
+      totalScore: number
+    }
+    type EventRow = SchoolDistrictRow & {
+      eventName: string
+      eventType: string
+      ageCategory: string
+      teamName: string | null
+    }
+
+    const dataQuery = async () => {
+      if (type === "school" || type === "district" || type === "location") {
+        let q = db
+          .select({
+            registrationId: registrations.id,
+            eventId: registrations.eventId,
+            schoolId: registrations.schoolId,
+            schoolName: schools.name,
+            schoolCode: schools.schoolCode,
+            location: schools.location,
+            totalScore: sql<number>`COALESCE(SUM(${judgments.score}), 0)`.as("total_score"),
+          })
+          .from(registrations)
+          .innerJoin(judgments, eq(registrations.id, judgments.registrationId))
+          .leftJoin(schools, eq(registrations.schoolId, schools.id))
+        if (schoolDistrictWhereClause) q = q.where(schoolDistrictWhereClause)
+        return q.groupBy(registrations.id, schools.id).having(
+          sql`COALESCE(SUM(${judgments.score}), 0) > 0`
+        ) as Promise<SchoolDistrictRow[]>
       }
-      const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined
-      
-      // Get registrations with scores only (filter in SQL)
-      const registrationResults = await db
+      let q = db
         .select({
           registrationId: registrations.id,
           eventId: registrations.eventId,
+          eventName: events.name,
+          eventType: events.eventType,
+          ageCategory: events.ageCategory,
+          teamName: registrations.teamName,
           schoolId: registrations.schoolId,
           schoolName: schools.name,
           schoolCode: schools.schoolCode,
-          location: schools.location,
           totalScore: sql<number>`COALESCE(SUM(${judgments.score}), 0)`.as("total_score"),
         })
         .from(registrations)
         .innerJoin(judgments, eq(registrations.id, judgments.registrationId))
+        .innerJoin(events, eq(registrations.eventId, events.id))
         .leftJoin(schools, eq(registrations.schoolId, schools.id))
-        .where(whereClause)
-        .groupBy(registrations.id, schools.id)
-        .having(sql`COALESCE(SUM(${judgments.score}), 0) > 0`)
+      if (eventWhereClause) q = q.where(eventWhereClause)
+      return q.groupBy(registrations.id, events.id, schools.id).having(
+        sql`COALESCE(SUM(${judgments.score}), 0) > 0`
+      ) as Promise<EventRow[]>
+    }
 
+    const [eventJudgesCount, registrationData] = await Promise.all([
+      eventJudgesCountQuery.groupBy(eventJudges.eventId),
+      dataQuery(),
+    ])
+
+    const judgesCountMap = new Map(eventJudgesCount.map((ej) => [ej.eventId, ej.judgeCount]))
+
+    if (type === "school" || type === "district" || type === "location") {
+      const registrationResults = registrationData as SchoolDistrictRow[]
       const registrationIds = registrationResults.map((r) => r.registrationId).filter(Boolean)
       const rewards =
         registrationIds.length > 0
@@ -290,62 +338,60 @@ export default defineEventHandler(async (event) => {
       return result
     }
 
-    // Event leaderboard: ranked by raw scores
-    const whereConditions: any[] = []
-    if (eventId) {
-      whereConditions.push(eq(registrations.eventId, eventId))
-    }
-    if (completedEventIds && completedEventIds.length > 0) {
-      whereConditions.push(inArray(registrations.eventId, completedEventIds))
-    }
-    const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined
-
-    const results = await db
-      .select({
-        registrationId: registrations.id,
-        eventId: registrations.eventId,
-        eventName: events.name,
-        eventType: events.eventType,
-        ageCategory: events.ageCategory,
-        teamName: registrations.teamName,
-        schoolId: registrations.schoolId,
-        schoolName: schools.name,
-        schoolCode: schools.schoolCode,
-        totalScore: sql<number>`COALESCE(SUM(${judgments.score}), 0)`.as("total_score"),
-      })
-      .from(registrations)
-      .innerJoin(judgments, eq(registrations.id, judgments.registrationId))
-      .innerJoin(events, eq(registrations.eventId, events.id))
-      .leftJoin(schools, eq(registrations.schoolId, schools.id))
-      .where(whereClause)
-      .groupBy(registrations.id, events.id, schools.id)
-      .having(sql`COALESCE(SUM(${judgments.score}), 0) > 0`)
-
+    // Event leaderboard: use registrationData from parallel dataQuery()
+    const results = registrationData as EventRow[]
     const registrationIds = results.map((r) => r.registrationId).filter(Boolean)
-    const rewards =
+    const [rewards, participantRows] = await Promise.all([
       registrationIds.length > 0
-        ? await db
+        ? db
             .select({
               registrationId: positionRewards.registrationId,
               rewardPoints: positionRewards.rewardPoints,
             })
             .from(positionRewards)
             .where(inArray(positionRewards.registrationId, registrationIds))
-        : []
+        : [],
+      registrationIds.length > 0
+        ? db
+            .select({
+              registrationId: registrationParticipants.registrationId,
+              studentName: students.studentName,
+            })
+            .from(registrationParticipants)
+            .innerJoin(students, eq(registrationParticipants.participantId, students.id))
+            .where(
+              and(
+                eq(registrationParticipants.participantType, "student"),
+                inArray(registrationParticipants.registrationId, registrationIds)
+              )
+            )
+        : [],
+    ])
     const rewardsMap = new Map(rewards.map((r) => [r.registrationId, r.rewardPoints]))
+    const studentNamesByRegId = new Map<string, string>()
+    for (const row of participantRows) {
+      const existing = studentNamesByRegId.get(row.registrationId) || ""
+      studentNamesByRegId.set(
+        row.registrationId,
+        existing ? `${existing}, ${row.studentName}` : row.studentName
+      )
+    }
 
     const leaderboard = results
       .map((r) => {
         const maxScore = judgesCountMap.get(r.eventId) || 1
         const gradeInfo = calculateGrade(r.totalScore || 0, maxScore * 10)
         const rewardPoints = rewardsMap.get(r.registrationId) || 0
+        const teamName = r.teamName || null
+        const studentName = teamName ? null : (studentNamesByRegId.get(r.registrationId) || null)
         return {
           registrationId: r.registrationId,
           eventId: r.eventId,
           eventName: r.eventName,
           eventType: r.eventType,
           ageCategory: r.ageCategory,
-          teamName: r.teamName,
+          teamName,
+          studentName,
           schoolId: r.schoolId,
           schoolName: r.schoolName,
           schoolCode: r.schoolCode,

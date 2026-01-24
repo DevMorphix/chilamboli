@@ -16,6 +16,7 @@ interface EventInfo {
 interface LeaderboardEntry {
   registrationId: string
   teamName: string | null
+  studentName: string | null
   schoolId: string | null
   schoolName: string | null
   schoolCode: string | null
@@ -66,60 +67,55 @@ export default defineEventHandler(async (event) => {
       }
     }
     
-    // Filter events based on context
-    const whereClause: SQL<unknown> | undefined = context === "presentation" 
-      ? eq(events.isCompleted, true) 
-      : undefined
-    
-    const [allEvents, eventJudgesCount] = await Promise.all([
-      db
-        .select({
-          id: events.id,
-          name: events.name,
-          eventType: events.eventType,
-          ageCategory: events.ageCategory,
-        })
-        .from(events)
-        .where(whereClause)
-        .orderBy(events.name),
+    const whereClause: SQL<unknown> | undefined =
+      context === "presentation" ? eq(events.isCompleted, true) : undefined
+
+    const allEvents = await db
+      .select({
+        id: events.id,
+        name: events.name,
+        eventType: events.eventType,
+        ageCategory: events.ageCategory,
+      })
+      .from(events)
+      .where(whereClause)
+      .orderBy(events.name)
+
+    const eventIds = allEvents.map((e) => e.id)
+    if (eventIds.length === 0) {
+      return { success: true as const, events: [] }
+    }
+
+    const [eventJudgesCount, allResults] = await Promise.all([
       db
         .select({
           eventId: eventJudges.eventId,
           judgeCount: sql<number>`COUNT(DISTINCT ${eventJudges.judgeId})`.as("judge_count"),
         })
         .from(eventJudges)
+        .where(inArray(eventJudges.eventId, eventIds))
         .groupBy(eventJudges.eventId),
+      db
+        .select({
+          eventId: registrations.eventId,
+          registrationId: registrations.id,
+          teamName: registrations.teamName,
+          schoolId: registrations.schoolId,
+          schoolName: schools.name,
+          schoolCode: schools.schoolCode,
+          totalScore: sql<number>`COALESCE(SUM(${judgments.score}), 0)`.as("total_score"),
+        })
+        .from(registrations)
+        .innerJoin(judgments, eq(registrations.id, judgments.registrationId))
+        .leftJoin(schools, eq(registrations.schoolId, schools.id))
+        .where(inArray(registrations.eventId, eventIds))
+        .groupBy(registrations.id, schools.id)
+        .having(sql`COALESCE(SUM(${judgments.score}), 0) > 0`),
     ])
 
     const judgesCountMap = new Map(
       eventJudgesCount.map((ej) => [ej.eventId, ej.judgeCount])
     )
-
-    // Get event IDs to filter registrations - optimize query by filtering in SQL
-    const eventIds = allEvents.map((e) => e.id)
-    
-    let registrationQuery = db
-      .select({
-        eventId: registrations.eventId,
-        registrationId: registrations.id,
-        teamName: registrations.teamName,
-        schoolId: registrations.schoolId,
-        schoolName: schools.name,
-        schoolCode: schools.schoolCode,
-        totalScore: sql<number>`COALESCE(SUM(${judgments.score}), 0)`.as("total_score"),
-      })
-      .from(registrations)
-      .innerJoin(judgments, eq(registrations.id, judgments.registrationId))
-      .leftJoin(schools, eq(registrations.schoolId, schools.id))
-    
-    // Filter by event IDs in SQL instead of memory
-    if (eventIds.length > 0) {
-      registrationQuery = registrationQuery.where(inArray(registrations.eventId, eventIds))
-    }
-    
-    const allResults = await registrationQuery
-      .groupBy(registrations.id, schools.id)
-      .having(sql`COALESCE(SUM(${judgments.score}), 0) > 0`)
 
     // Group results by event
     const resultsByEvent = new Map<string, typeof allResults>()
@@ -182,7 +178,8 @@ export default defineEventHandler(async (event) => {
             const rewardPoints = rewardsMap.get(result.registrationId) || 0
             return {
               registrationId: result.registrationId,
-              teamName: result.teamName || studentNamesByRegId.get(result.registrationId) || null,
+              teamName: result.teamName || null,
+              studentName: result.teamName ? null : (studentNamesByRegId.get(result.registrationId) || null),
               schoolId: result.schoolId,
               schoolName: result.schoolName,
               schoolCode: result.schoolCode,

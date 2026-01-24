@@ -100,8 +100,9 @@
         <!-- Back to All Events button when viewing single event -->
         <div v-if="viewingFullEventId" class="mb-4">
           <button
-            @click="viewingFullEventId = null"
-            class="inline-flex items-center rounded-md bg-gray-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+            @click="backToAllEvents"
+            :disabled="leaderboardLoading"
+            class="inline-flex items-center rounded-md bg-gray-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -115,13 +116,30 @@
           v-show="!viewingFullEventId || viewingFullEventId === eventLeaderboard.event.id"
           class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
         >
-          <div class="border-b border-gray-200 bg-purple-50 px-6 py-4">
-            <h2 class="text-lg font-semibold text-gray-900">{{ eventLeaderboard.event.name }}</h2>
-            <p class="mt-1 text-sm text-gray-600">{{ eventLeaderboard.event.eventType }} • {{ eventLeaderboard.event.ageCategory }}</p>
-            <p v-if="dataCapturedAt" class="mt-1 text-xs text-gray-500">
-              Last updated: {{ formatTimestamp(dataCapturedAt) }}
-              <span v-if="cached" class="ml-2 rounded bg-purple-100 px-2 py-0.5 text-purple-700">Cached</span>
-            </p>
+          <div class="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 bg-purple-50 px-6 py-4">
+            <div>
+              <h2 class="text-lg font-semibold text-gray-900">{{ eventLeaderboard.event.name }}</h2>
+              <p class="mt-1 text-sm text-gray-600">{{ eventLeaderboard.event.eventType }} • {{ eventLeaderboard.event.ageCategory }}</p>
+              <p v-if="dataCapturedAt" class="mt-1 text-xs text-gray-500">
+                Last updated: {{ formatTimestamp(dataCapturedAt) }}
+                <span v-if="cached" class="ml-2 rounded bg-purple-100 px-2 py-0.5 text-purple-700">Cached</span>
+              </p>
+            </div>
+            <button
+              v-if="shouldShowAllButton(eventLeaderboard)"
+              @click="showAllForEvent(eventLeaderboard)"
+              :disabled="loadingFullResults[eventLeaderboard.event.id]"
+              class="shrink-0 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span v-if="loadingFullResults[eventLeaderboard.event.id]">
+                <svg class="inline-block h-4 w-4 animate-spin mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Loading...
+              </span>
+              <span v-else>Show All</span>
+            </button>
           </div>
           <div v-if="getDisplayedResults(eventLeaderboard).length === 0" class="px-6 py-8 text-center text-gray-500">
             No rankings available for this event yet.
@@ -131,7 +149,9 @@
               <thead class="bg-gray-50">
                 <tr>
                   <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Rank</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Team Name</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    {{ eventLeaderboard.event.eventType === 'Individual' ? 'Student Name' : 'Team Name' }}
+                  </th>
                   <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">School</th>
                   <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">School Code</th>
                   <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Total Score</th>
@@ -156,7 +176,9 @@
                   </td>
                   <td class="px-4 py-3">
                     <div class="text-sm font-medium text-gray-900">
-                      {{ entry.teamName || '-' }}
+                      {{ eventLeaderboard.event.eventType === 'Individual'
+                        ? (entry.studentName || '-')
+                        : (entry.teamName || '-') }}
                     </div>
                   </td>
                   <td class="px-4 py-3">
@@ -185,25 +207,6 @@
                 </tr>
               </tbody>
             </table>
-          </div>
-          <!-- Pagination-style "Show All" button -->
-          <div v-if="!viewingFullEventId && shouldShowAllButton(eventLeaderboard)" class="border-t border-gray-200 bg-gray-50 px-6 py-4">
-            <div class="flex items-center justify-end">
-              <button
-                @click="showAllForEvent(eventLeaderboard.event.id)"
-                :disabled="loadingFullResults[eventLeaderboard.event.id]"
-                class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <span v-if="loadingFullResults[eventLeaderboard.event.id]">
-                  <svg class="inline-block h-4 w-4 animate-spin mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Loading...
-                </span>
-                <span v-else>Show All</span>
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -333,6 +336,7 @@ interface LeaderboardEntry {
   location?: string
   totalGradePoints?: number
   teamName?: string | null
+  studentName?: string | null
   schoolName?: string | null
   schoolCode?: string | null
   eventName?: string
@@ -421,11 +425,9 @@ const fetchEventLeaderboards = async () => {
     
     if (response.success) {
       eventLeaderboards.value = response.events || []
-      // Reset full results state when fetching new data
       fullEventResults.value = {}
       loadingFullResults.value = {}
       viewingFullEventId.value = null
-      
       cached.value = response.cached || false
       dataCapturedAt.value = response.dataCapturedAt || null
     }
@@ -517,18 +519,16 @@ const getDisplayedResults = (eventLeaderboard: EventLeaderboard): LeaderboardEnt
   return fullEventResults.value[eventId] || eventLeaderboard.leaderboard || []
 }
 
-// Check if "Show All" button should be displayed
+// Show "Show All" whenever the event has results (and we're not already showing full data)
 const shouldShowAllButton = (eventLeaderboard: EventLeaderboard): boolean => {
   const eventId = eventLeaderboard.event.id
-  if (fullEventResults.value[eventId]) {
-    return false
-  }
-  const displayedCount = eventLeaderboard.leaderboard.length
-  return eventLeaderboard.totalResults > displayedCount
+  if (fullEventResults.value[eventId]) return false
+  return eventLeaderboard.totalResults > (eventLeaderboard.leaderboard?.length || 0)
 }
 
-// Show all results for a single event (hides other events)
-const showAllForEvent = async (eventId: string) => {
+// Show all results for a single event only. Fetches only that event's data; does not hold other events.
+const showAllForEvent = async (eventLeaderboard: EventLeaderboard) => {
+  const eventId = eventLeaderboard.event.id
   if (fullEventResults.value[eventId] || loadingFullResults.value[eventId]) {
     return
   }
@@ -540,13 +540,18 @@ const showAllForEvent = async (eventId: string) => {
         type: 'event',
         context: 'admin',
         eventId,
-        limit: 500,
+        limit: 1000,
       },
     })
     
     if (response.success && response.leaderboard) {
       fullEventResults.value[eventId] = response.leaderboard
-      // Set viewing mode to show only this event
+      // Replace list with only this event — do not hold other events' data
+      eventLeaderboards.value = [{
+        event: eventLeaderboard.event,
+        leaderboard: [],
+        totalResults: response.leaderboard.length,
+      }]
       viewingFullEventId.value = eventId
     }
   } catch (err) {
@@ -554,6 +559,11 @@ const showAllForEvent = async (eventId: string) => {
   } finally {
     loadingFullResults.value[eventId] = false
   }
+}
+
+const backToAllEvents = () => {
+  viewingFullEventId.value = null
+  loadLeaderboards()
 }
 
 watch(leaderboardTab, () => {
