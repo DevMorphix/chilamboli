@@ -96,15 +96,19 @@ export default defineEventHandler(async (event) => {
       }
       const bestPerformerWhereClause = and(...bestPerformerWhereConditions)
       
-      // Parallel: Get judge counts and registration scores
+      let bestPerformerJudgesQuery = db
+        .select({
+          eventId: eventJudges.eventId,
+          judgeCount: sql<number>`COUNT(DISTINCT ${eventJudges.judgeId})`.as("judge_count"),
+        })
+        .from(eventJudges)
+      if (completedEventIds && completedEventIds.length > 0) {
+        bestPerformerJudgesQuery = bestPerformerJudgesQuery.where(
+          inArray(eventJudges.eventId, completedEventIds)
+        )
+      }
       const [eventJudgesCount, registrationResults] = await Promise.all([
-        db
-          .select({
-            eventId: eventJudges.eventId,
-            judgeCount: sql<number>`COUNT(DISTINCT ${eventJudges.judgeId})`.as("judge_count"),
-          })
-          .from(eventJudges)
-          .groupBy(eventJudges.eventId),
+        bestPerformerJudgesQuery.groupBy(eventJudges.eventId),
         db
           .select({
             studentId: students.id,
@@ -209,14 +213,17 @@ export default defineEventHandler(async (event) => {
         .groupBy(registrations.id, schools.id)
         .having(sql`COALESCE(SUM(${judgments.score}), 0) > 0`)
 
-      // Get position rewards for these registrations
       const registrationIds = registrationResults.map((r) => r.registrationId).filter(Boolean)
-      const rewards = registrationIds.length > 0
-        ? await db
-            .select()
-            .from(positionRewards)
-            .where(inArray(positionRewards.registrationId, registrationIds))
-        : []
+      const rewards =
+        registrationIds.length > 0
+          ? await db
+              .select({
+                registrationId: positionRewards.registrationId,
+                rewardPoints: positionRewards.rewardPoints,
+              })
+              .from(positionRewards)
+              .where(inArray(positionRewards.registrationId, registrationIds))
+          : []
       const rewardsMap = new Map(rewards.map((r) => [r.registrationId, r.rewardPoints]))
 
       // Calculate grade points and aggregate (including reward points)
@@ -314,14 +321,17 @@ export default defineEventHandler(async (event) => {
       .groupBy(registrations.id, events.id, schools.id)
       .having(sql`COALESCE(SUM(${judgments.score}), 0) > 0`)
 
-    // Get position rewards for these registrations
     const registrationIds = results.map((r) => r.registrationId).filter(Boolean)
-    const rewards = registrationIds.length > 0
-      ? await db
-          .select()
-          .from(positionRewards)
-          .where(inArray(positionRewards.registrationId, registrationIds))
-      : []
+    const rewards =
+      registrationIds.length > 0
+        ? await db
+            .select({
+              registrationId: positionRewards.registrationId,
+              rewardPoints: positionRewards.rewardPoints,
+            })
+            .from(positionRewards)
+            .where(inArray(positionRewards.registrationId, registrationIds))
+        : []
     const rewardsMap = new Map(rewards.map((r) => [r.registrationId, r.rewardPoints]))
 
     const leaderboard = results

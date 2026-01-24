@@ -17,16 +17,10 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Find judge auth entry
     const [judgeAuth] = await db
-      .select()
+      .select({ userId: auth.userId, password: auth.password })
       .from(auth)
-      .where(
-        and(
-          eq(auth.mobileNumber, mobileNumber),
-          eq(auth.userType, "judge")
-        )
-      )
+      .where(and(eq(auth.mobileNumber, mobileNumber), eq(auth.userType, "judge")))
       .limit(1)
 
     if (!judgeAuth) {
@@ -36,9 +30,7 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Verify PIN
     const isPinValid = await bcrypt.compare(pin, judgeAuth.password)
-
     if (!isPinValid) {
       throw createError({
         statusCode: 401,
@@ -46,9 +38,8 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Get judge details
     const [judge] = await db
-      .select()
+      .select({ id: judges.id, judgeName: judges.judgeName, mobileNumber: judges.mobileNumber })
       .from(judges)
       .where(eq(judges.id, judgeAuth.userId))
       .limit(1)

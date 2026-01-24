@@ -1,5 +1,5 @@
 import { useDB } from "../../utils/db"
-import { judges, eventJudges, events, registrations, registrationParticipants, schools, judgments } from "../../database/schema"
+import { judges, eventJudges, events, registrations, registrationParticipants, judgments } from "../../database/schema"
 import { eq, and, sql, inArray } from "drizzle-orm"
 
 // Get judge dashboard data - assigned event with registrations
@@ -16,9 +16,8 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Check if judge exists
     const [judge] = await db
-      .select()
+      .select({ id: judges.id, judgeName: judges.judgeName, mobileNumber: judges.mobileNumber })
       .from(judges)
       .where(eq(judges.id, judgeId))
       .limit(1)
@@ -30,7 +29,6 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Get the assigned enabled event-judge assignment (judge can be assigned to multiple events, but only enabled assignment is active)
     const [assignedEvent] = await db
       .select({
         eventId: events.id,
@@ -66,14 +64,9 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Get all registrations for this event
     const registrationsList = await db
-      .select({
-        registration: registrations,
-        school: schools,
-      })
+      .select({ registration: registrations })
       .from(registrations)
-      .innerJoin(schools, eq(registrations.schoolId, schools.id))
       .where(eq(registrations.eventId, assignedEvent.eventId))
 
     // Get all judges assigned to this event
@@ -86,22 +79,30 @@ export default defineEventHandler(async (event) => {
       .innerJoin(judges, eq(eventJudges.judgeId, judges.id))
       .where(eq(eventJudges.eventId, assignedEvent.eventId))
 
-    // Get judgments for these registrations by ALL judges assigned to the event
     const registrationIds = registrationsList.map((r) => r.registration.id)
-    const judgmentsList = registrationIds.length > 0 && eventJudgesList.length > 0
-      ? await db
-          .select()
-          .from(judgments)
-          .where(
-            and(
-              inArray(judgments.registrationId, registrationIds),
-              inArray(judgments.judgeId, eventJudgesList.map((ej) => ej.judgeId))
+    const judgeIds = eventJudgesList.map((ej) => ej.judgeId)
+    const judgmentsList =
+      registrationIds.length > 0 && judgeIds.length > 0
+        ? await db
+            .select({
+              id: judgments.id,
+              judgeId: judgments.judgeId,
+              registrationId: judgments.registrationId,
+              score: judgments.score,
+              comments: judgments.comments,
+              createdAt: judgments.createdAt,
+              updatedAt: judgments.updatedAt,
+            })
+            .from(judgments)
+            .where(
+              and(
+                inArray(judgments.registrationId, registrationIds),
+                inArray(judgments.judgeId, judgeIds)
+              )
             )
-          )
-      : []
+        : []
 
-    // Create a map of judgments by registrationId and judgeId
-    const judgmentsMap = new Map<string, Map<string, typeof judgmentsList[0]>>()
+    const judgmentsMap = new Map<string, Map<string, (typeof judgmentsList)[0]>>()
     judgmentsList.forEach((j) => {
       if (!judgmentsMap.has(j.registrationId)) {
         judgmentsMap.set(j.registrationId, new Map())

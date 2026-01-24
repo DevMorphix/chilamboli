@@ -1,6 +1,6 @@
 import { useDB } from "../../utils/db"
 import { schools, faculty, students, registrations, events, registrationParticipants } from "../../database/schema"
-import { eq, sql, count, desc } from "drizzle-orm"
+import { eq, sql, count, desc, inArray } from "drizzle-orm"
 
 const CACHE_KEY = "admin:analytics"
 const CACHE_TTL = 60 * 60 // 1 hour in seconds
@@ -30,37 +30,53 @@ export default defineEventHandler(async (event) => {
     // If no cache, fetch fresh data
     const capturedAt = Date.now()
 
-    // Overall Statistics - Run in parallel for better performance
+    // Single parallel batch: all aggregations in one round-trip wave.
+    // - One faculty query (GROUP BY schoolId, isVerified) replaces 4 separate faculty scans.
+    // - Overview counts (totalStudents, totalRegistrations, participatingSchools) derived from
+    //   per-school aggregations; no separate full-table counts.
+    // - Schools fetched only for participating school IDs (not full table scan).
     const [
-      schoolsCount,
-      facultyCount,
-      studentsCount,
-      registrationsCount,
-      verifiedFacultyCount
-    ] = await Promise.all([
-      db.select({ count: count() }).from(schools).then(r => r[0]),
-      db.select({ count: count() }).from(faculty).then(r => r[0]),
-      db.select({ count: count() }).from(students).then(r => r[0]),
-      db.select({ count: count() }).from(registrations).then(r => r[0]),
-      db.select({ count: count() }).from(faculty).where(eq(faculty.isVerified, true)).then(r => r[0])
-    ])
-
-    // Faculty Verification Rate
-    const verificationRate = verifiedFacultyCount.count / (facultyCount.count || 1) * 100
-
-    // Run data queries in parallel
-    const [
+      schoolsCountResult,
+      facultyBySchoolAndVerified,
+      studentCounts,
+      registrationCounts,
       registrationTrends,
       studentAgeDistribution,
       studentGenderDistribution,
       registrationByEventType,
       studentRegistrationTrends,
-      participatingSchoolsCountResult,
       participatingStudentsCountResult,
       registrationsByEvent,
-      studentsByEvent
+      studentsByEvent,
     ] = await Promise.all([
-      // Registration Trends (daily - all time)
+      db.select({ count: count() }).from(schools).then((r) => r[0]),
+
+      // Single faculty scan: GROUP BY schoolId, isVerified → derive total, verified, per-school
+      db
+        .select({
+          schoolId: faculty.schoolId,
+          isVerified: faculty.isVerified,
+          count: sql<number>`COUNT(*) as count`,
+        })
+        .from(faculty)
+        .groupBy(faculty.schoolId, faculty.isVerified),
+
+      db
+        .select({
+          schoolId: students.schoolId,
+          count: sql<number>`COUNT(*) as count`,
+        })
+        .from(students)
+        .groupBy(students.schoolId),
+
+      db
+        .select({
+          schoolId: registrations.schoolId,
+          count: sql<number>`COUNT(*) as count`,
+        })
+        .from(registrations)
+        .groupBy(registrations.schoolId),
+
       db
         .select({
           date: sql<string>`DATE(${registrations.createdAt}, 'unixepoch') as date`,
@@ -69,8 +85,7 @@ export default defineEventHandler(async (event) => {
         .from(registrations)
         .groupBy(sql`DATE(${registrations.createdAt}, 'unixepoch')`)
         .orderBy(sql`DATE(${registrations.createdAt}, 'unixepoch')`),
-      
-      // Student Distribution by Age Category
+
       db
         .select({
           category: students.ageCategory,
@@ -78,8 +93,7 @@ export default defineEventHandler(async (event) => {
         })
         .from(students)
         .groupBy(students.ageCategory),
-      
-      // Student Distribution by Gender
+
       db
         .select({
           gender: students.gender,
@@ -87,8 +101,7 @@ export default defineEventHandler(async (event) => {
         })
         .from(students)
         .groupBy(students.gender),
-      
-      // Registration by Event Type
+
       db
         .select({
           eventType: events.eventType,
@@ -97,8 +110,7 @@ export default defineEventHandler(async (event) => {
         .from(registrations)
         .innerJoin(events, eq(registrations.eventId, events.id))
         .groupBy(events.eventType),
-      
-      // Student registration trends (daily - all time)
+
       db
         .select({
           date: sql<string>`DATE(${students.createdAt}, 'unixepoch') as date`,
@@ -107,21 +119,13 @@ export default defineEventHandler(async (event) => {
         .from(students)
         .groupBy(sql`DATE(${students.createdAt}, 'unixepoch')`)
         .orderBy(sql`DATE(${students.createdAt}, 'unixepoch')`),
-      
-      // Count participating schools (schools with at least one registration)
-      db
-        .select({ count: sql<number>`COUNT(DISTINCT ${registrations.schoolId}) as count` })
-        .from(registrations)
-        .then(r => r[0]),
-      
-      // Count unique students participating in at least one registration
+
       db
         .select({ count: sql<number>`COUNT(DISTINCT ${registrationParticipants.participantId}) as count` })
         .from(registrationParticipants)
-        .where(eq(registrationParticipants.participantType, 'student'))
-        .then(r => r[0]),
-      
-      // Registrations by Event (by event name)
+        .where(eq(registrationParticipants.participantType, "student"))
+        .then((r) => r[0]),
+
       db
         .select({
           eventId: events.id,
@@ -132,8 +136,7 @@ export default defineEventHandler(async (event) => {
         .innerJoin(events, eq(registrations.eventId, events.id))
         .groupBy(events.id, events.name)
         .orderBy(desc(sql`COUNT(DISTINCT ${registrations.id})`)),
-      
-      // Students by Event (count distinct students per event) - optimized with better join order
+
       db
         .select({
           eventId: events.id,
@@ -143,74 +146,57 @@ export default defineEventHandler(async (event) => {
         .from(registrationParticipants)
         .innerJoin(registrations, eq(registrationParticipants.registrationId, registrations.id))
         .innerJoin(events, eq(registrations.eventId, events.id))
-        .where(eq(registrationParticipants.participantType, 'student'))
+        .where(eq(registrationParticipants.participantType, "student"))
         .groupBy(events.id, events.name)
-        .orderBy(desc(sql`COUNT(DISTINCT ${registrationParticipants.participantId})`))
+        .orderBy(desc(sql`COUNT(DISTINCT ${registrationParticipants.participantId})`)),
     ])
-    
-    const participatingSchoolsCount = participatingSchoolsCountResult
+
+    const schoolsCount = schoolsCountResult
     const participatingStudentsCount = participatingStudentsCountResult
 
-    // School performance breakdown - Get all schools first
-    const allSchoolsList = await db
-      .select({
-        id: schools.id,
-        name: schools.name,
-        schoolCode: schools.schoolCode,
-        location: schools.location,
-      })
-      .from(schools)
-    
-    // Get aggregated counts per school in parallel
-    const [
-      studentCounts,
-      registrationCounts,
-      facultyCounts,
-      verifiedFacultyCounts
-    ] = await Promise.all([
-      // Student counts per school
-      db
-        .select({
-          schoolId: students.schoolId,
-          count: sql<number>`COUNT(*) as count`,
-        })
-        .from(students)
-        .groupBy(students.schoolId),
-      
-      // Registration counts per school (all time)
-      db
-        .select({
-          schoolId: registrations.schoolId,
-          count: sql<number>`COUNT(*) as count`,
-        })
-        .from(registrations)
-        .groupBy(registrations.schoolId),
-      
-      // Total faculty counts per school
-      db
-        .select({
-          schoolId: faculty.schoolId,
-          count: sql<number>`COUNT(*) as count`,
-        })
-        .from(faculty)
-        .groupBy(faculty.schoolId),
-      
-      // Verified faculty counts per school
-      db
-        .select({
-          schoolId: faculty.schoolId,
-          count: sql<number>`COUNT(*) as count`,
-        })
-        .from(faculty)
-        .where(eq(faculty.isVerified, true))
-        .groupBy(faculty.schoolId),
-    ])
-    
-    // Create lookup maps for O(1) access
-    const studentCountMap = new Map(studentCounts.map(s => [s.schoolId, Number(s.count)]))
-    const registrationCountMap = new Map(registrationCounts.map(r => [r.schoolId, Number(r.count)]))
-    const facultyCountMap = new Map(facultyCounts.map(f => [f.schoolId, Number(f.count)]))
-    const verifiedFacultyCountMap = new Map(verifiedFacultyCounts.map(f => [f.schoolId, Number(f.count)]))
+    // Derive faculty overview and per-school maps from single faculty aggregation
+    let totalFaculty = 0
+    let verifiedFaculty = 0
+    const facultyCountMap = new Map<string, number>()
+    const verifiedFacultyCountMap = new Map<string, number>()
+    for (const row of facultyBySchoolAndVerified) {
+      const c = Number(row.count)
+      totalFaculty += c
+      if (row.isVerified) verifiedFaculty += c
+      facultyCountMap.set(row.schoolId, (facultyCountMap.get(row.schoolId) ?? 0) + c)
+      if (row.isVerified) {
+        verifiedFacultyCountMap.set(row.schoolId, (verifiedFacultyCountMap.get(row.schoolId) ?? 0) + c)
+      }
+    }
+    const verificationRate = totalFaculty > 0 ? (verifiedFaculty / totalFaculty) * 100 : 0
+
+    // Derive overview counts from per-school aggregations (no extra DB reads)
+    const totalStudents = studentCounts.reduce((s, r) => s + Number(r.count), 0)
+    const totalRegistrations = registrationCounts.reduce((s, r) => s + Number(r.count), 0)
+    const participatingSchoolsCount = new Set(registrationCounts.map((r) => r.schoolId)).size
+
+    const studentCountMap = new Map(studentCounts.map((s) => [s.schoolId, Number(s.count)]))
+    const registrationCountMap = new Map(registrationCounts.map((r) => [r.schoolId, Number(r.count)]))
+
+    // Fetch only participating schools (schools with students or registrations) — no full table scan
+    const participatingSchoolIds = [
+      ...new Set([
+        ...studentCountMap.keys(),
+        ...registrationCountMap.keys(),
+      ]),
+    ]
+    const allSchoolsList =
+      participatingSchoolIds.length > 0
+        ? await db
+            .select({
+              id: schools.id,
+              name: schools.name,
+              schoolCode: schools.schoolCode,
+              location: schools.location,
+            })
+            .from(schools)
+            .where(inArray(schools.id, participatingSchoolIds))
+        : []
     
     // Combine data - only include schools with students or registrations
     const schoolsWithData = allSchoolsList
@@ -237,13 +223,13 @@ export default defineEventHandler(async (event) => {
     const responseData = {
       overview: {
         totalSchools: schoolsCount.count,
-        participatingSchools: Number(participatingSchoolsCount.count),
-        totalFaculty: facultyCount.count,
-        verifiedFaculty: verifiedFacultyCount.count,
+        participatingSchools: participatingSchoolsCount,
+        totalFaculty,
+        verifiedFaculty,
         verificationRate: Math.round(verificationRate * 100) / 100,
-        totalStudents: studentsCount.count,
-        participatingStudents: Number(participatingStudentsCount.count),
-        totalRegistrations: registrationsCount.count,
+        totalStudents,
+        participatingStudents: Number(participatingStudentsCount?.count ?? 0),
+        totalRegistrations,
       },
       trends: {
         registrations: registrationTrends.map((t) => ({

@@ -17,16 +17,10 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Find admin auth entry
     const [adminAuth] = await db
-      .select()
+      .select({ email: auth.email, password: auth.password })
       .from(auth)
-      .where(
-        and(
-          eq(auth.email, email),
-          eq(auth.userType, "admin")
-        )
-      )
+      .where(and(eq(auth.email, email), eq(auth.userType, "admin")))
       .limit(1)
 
     if (!adminAuth) {

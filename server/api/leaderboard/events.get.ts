@@ -71,15 +71,17 @@ export default defineEventHandler(async (event) => {
       ? eq(events.isCompleted, true) 
       : undefined
     
-    // Get all events and judge counts simultaneously
     const [allEvents, eventJudgesCount] = await Promise.all([
-      // Get all events (no pagination)
       db
-        .select()
+        .select({
+          id: events.id,
+          name: events.name,
+          eventType: events.eventType,
+          ageCategory: events.ageCategory,
+        })
         .from(events)
         .where(whereClause)
         .orderBy(events.name),
-      // Get judge counts
       db
         .select({
           eventId: eventJudges.eventId,
@@ -96,7 +98,6 @@ export default defineEventHandler(async (event) => {
     // Get event IDs to filter registrations - optimize query by filtering in SQL
     const eventIds = allEvents.map((e) => e.id)
     
-    // Single query: Get registrations with scores only for relevant events (filter in SQL)
     let registrationQuery = db
       .select({
         eventId: registrations.eventId,
@@ -106,7 +107,6 @@ export default defineEventHandler(async (event) => {
         schoolName: schools.name,
         schoolCode: schools.schoolCode,
         totalScore: sql<number>`COALESCE(SUM(${judgments.score}), 0)`.as("total_score"),
-        judgeCount: sql<number>`COUNT(DISTINCT ${judgments.judgeId})`.as("judge_count"),
       })
       .from(registrations)
       .innerJoin(judgments, eq(registrations.id, judgments.registrationId))
@@ -148,7 +148,10 @@ export default defineEventHandler(async (event) => {
         : [],
       registrationIds.length > 0
         ? db
-            .select()
+            .select({
+              registrationId: positionRewards.registrationId,
+              rewardPoints: positionRewards.rewardPoints,
+            })
             .from(positionRewards)
             .where(inArray(positionRewards.registrationId, registrationIds))
         : [],

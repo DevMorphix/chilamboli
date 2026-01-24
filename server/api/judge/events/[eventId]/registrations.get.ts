@@ -1,8 +1,19 @@
 import { useDB } from "../../../../utils/db"
-import { judges, eventJudges, events, registrations, registrationParticipants, students, faculty, schools, judgments } from "../../../../database/schema"
-import { eq, and } from "drizzle-orm"
+import {
+  eventJudges,
+  events,
+  registrations,
+  registrationParticipants,
+  students,
+  faculty,
+  schools,
+  judgments,
+} from "../../../../database/schema"
+import { eq, and, inArray } from "drizzle-orm"
 
-// Get registrations for an event assigned to a judge
+// Get registrations for an event assigned to a judge.
+// Optimized: assignment+event in one query, judgments filtered by registrationIds,
+// batch-fetch students/faculty to eliminate N+1.
 export default defineEventHandler(async (event) => {
   const db = useDB(event)
   const eventId = getRouterParam(event, "eventId")
@@ -24,33 +35,31 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Verify judge is assigned to this event
-    const [assignment] = await db
-      .select()
+    const [assignmentWithEvent] = await db
+      .select({
+        id: events.id,
+        name: events.name,
+        description: events.description,
+        eventType: events.eventType,
+        ageCategory: events.ageCategory,
+        gender: events.gender,
+        maxTeamSize: events.maxTeamSize,
+        isCompleted: events.isCompleted,
+        createdAt: events.createdAt,
+      })
       .from(eventJudges)
+      .innerJoin(events, eq(eventJudges.eventId, events.id))
       .where(and(eq(eventJudges.judgeId, judgeId), eq(eventJudges.eventId, eventId)))
       .limit(1)
 
-    if (!assignment) {
+    if (!assignmentWithEvent) {
       throw createError({
         statusCode: 403,
         message: "Judge is not assigned to this event",
       })
     }
 
-    // Get event details
-    const [eventData] = await db
-      .select()
-      .from(events)
-      .where(eq(events.id, eventId))
-      .limit(1)
-
-    if (!eventData) {
-      throw createError({
-        statusCode: 404,
-        message: "Event not found",
-      })
-    }
+    const eventData = assignmentWithEvent
 
     // Get all registrations for this event
     const registrationsList = await db
@@ -67,18 +76,18 @@ export default defineEventHandler(async (event) => {
     // Get all registration IDs
     const registrationIds = Array.from(new Set(registrationsList.map((r) => r.registration.id)))
 
-    // Get judgments for these registrations by this judge
-    const judgmentsList = registrationIds.length > 0
-      ? await db
-          .select()
-          .from(judgments)
-          .where(and(eq(judgments.judgeId, judgeId)))
-      : []
-
-    // Filter judgments for this event's registrations
-    const relevantJudgments = judgmentsList.filter((j) =>
-      registrationIds.includes(j.registrationId)
-    )
+    const relevantJudgments =
+      registrationIds.length > 0
+        ? await db
+            .select()
+            .from(judgments)
+            .where(
+              and(
+                eq(judgments.judgeId, judgeId),
+                inArray(judgments.registrationId, registrationIds)
+              )
+            )
+        : []
 
     const judgmentsMap = new Map(relevantJudgments.map((j) => [j.registrationId, j]))
 
@@ -99,24 +108,34 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Fetch participant details (students and faculty)
+    const studentIds = new Set<string>()
+    const facultyIds = new Set<string>()
+    for (const reg of registrationsMap.values()) {
+      for (const p of reg.participants) {
+        if (p.participantType === "student") studentIds.add(p.participantId)
+        else if (p.participantType === "faculty") facultyIds.add(p.participantId)
+      }
+    }
+
+    const [studentsList, facultyList] = await Promise.all([
+      studentIds.size > 0
+        ? db.select().from(students).where(inArray(students.id, [...studentIds]))
+        : [],
+      facultyIds.size > 0
+        ? db.select().from(faculty).where(inArray(faculty.id, [...facultyIds]))
+        : [],
+    ])
+
+    const studentMap = new Map(studentsList.map((s) => [s.id, s]))
+    const facultyMap = new Map(facultyList.map((f) => [f.id, f]))
+
     const registrationArray = Array.from(registrationsMap.values())
     for (const reg of registrationArray) {
       for (const participant of reg.participants) {
         if (participant.participantType === "student") {
-          const [student] = await db
-            .select()
-            .from(students)
-            .where(eq(students.id, participant.participantId))
-            .limit(1)
-          participant.details = student
+          participant.details = studentMap.get(participant.participantId) ?? null
         } else if (participant.participantType === "faculty") {
-          const [facultyMember] = await db
-            .select()
-            .from(faculty)
-            .where(eq(faculty.id, participant.participantId))
-            .limit(1)
-          participant.details = facultyMember
+          participant.details = facultyMap.get(participant.participantId) ?? null
         }
       }
     }

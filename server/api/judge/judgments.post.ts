@@ -26,9 +26,8 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Verify judge exists
     const [judge] = await db
-      .select()
+      .select({ id: judges.id })
       .from(judges)
       .where(eq(judges.id, judgeId))
       .limit(1)
@@ -40,9 +39,8 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Verify registration exists
     const [registration] = await db
-      .select()
+      .select({ eventId: registrations.eventId })
       .from(registrations)
       .where(eq(registrations.id, registrationId))
       .limit(1)
@@ -54,9 +52,8 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Verify judge is assigned to this event
     const [assignment] = await db
-      .select()
+      .select({ id: eventJudges.id })
       .from(eventJudges)
       .where(and(eq(eventJudges.judgeId, judgeId), eq(eventJudges.eventId, registration.eventId)))
       .limit(1)
@@ -68,9 +65,8 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Check if judgment already exists
     const [existingJudgment] = await db
-      .select()
+      .select({ id: judgments.id })
       .from(judgments)
       .where(and(eq(judgments.judgeId, judgeId), eq(judgments.registrationId, registrationId)))
       .limit(1)

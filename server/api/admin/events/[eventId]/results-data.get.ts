@@ -8,10 +8,13 @@ import {
   judges,
   positionRewards,
 } from "../../../../database/schema"
-import { eq, sql, inArray } from "drizzle-orm"
+import { eq, inArray } from "drizzle-orm"
 import { calculateGrade } from "../../../../utils/grading"
 
-// Get detailed event results with all judge scores for PDF generation (client-side)
+type JudgmentRow = { registrationId: string; judgeId: string; score: number }
+
+// Get detailed event results with all judge scores for PDF generation (client-side).
+// Optimized: single read of judgments + position_rewards (no duplicate scan via JOIN+GROUP).
 export default defineEventHandler(async (event) => {
   const db = useDB(event)
   const eventId = getRouterParam(event, "eventId")
@@ -24,7 +27,6 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Get event details
     const [eventData] = await db
       .select()
       .from(events)
@@ -38,7 +40,6 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Get all judges assigned to this event
     const eventJudgesList = await db
       .select({
         judgeId: eventJudges.judgeId,
@@ -58,51 +59,66 @@ export default defineEventHandler(async (event) => {
     }
     const maxPossibleScore = judgeCount * 10
 
-    // Get all registrations for this event with scores
-    const results = await db
+    // Registrations + schools only (no judgments). Avoids double-scan of judgments.
+    const regsWithSchools = await db
       .select({
         registrationId: registrations.id,
         teamName: registrations.teamName,
         schoolId: registrations.schoolId,
         schoolName: schools.name,
         schoolCode: schools.schoolCode,
-        totalScore: sql<number>`COALESCE(SUM(${judgments.score}), 0)`.as("total_score"),
       })
       .from(registrations)
-      .innerJoin(judgments, eq(registrations.id, judgments.registrationId))
       .leftJoin(schools, eq(registrations.schoolId, schools.id))
       .where(eq(registrations.eventId, eventId))
-      .groupBy(registrations.id, schools.id)
-      .having(sql`COALESCE(SUM(${judgments.score}), 0) > 0`)
 
-    // Get all judgments and position rewards for these registrations
-    const registrationIds = results.map((r) => r.registrationId)
+    const registrationIds = regsWithSchools.map((r) => r.registrationId)
+    if (registrationIds.length === 0) {
+      throw createError({
+        statusCode: 400,
+        message: "No results available for this event",
+      })
+    }
+
     const [allJudgments, rewards] = await Promise.all([
-      registrationIds.length > 0
-        ? db
-            .select()
-            .from(judgments)
-            .where(inArray(judgments.registrationId, registrationIds))
-        : [],
-      registrationIds.length > 0
-        ? db
-            .select()
-            .from(positionRewards)
-            .where(inArray(positionRewards.registrationId, registrationIds))
-        : [],
+      db
+        .select({
+          registrationId: judgments.registrationId,
+          judgeId: judgments.judgeId,
+          score: judgments.score,
+        })
+        .from(judgments)
+        .where(inArray(judgments.registrationId, registrationIds)),
+      db
+        .select({
+          registrationId: positionRewards.registrationId,
+          rewardPoints: positionRewards.rewardPoints,
+        })
+        .from(positionRewards)
+        .where(inArray(positionRewards.registrationId, registrationIds)),
     ])
 
-    // Create a map of judgments by registrationId and judgeId
-    const judgmentsMap = new Map<string, Map<string, typeof allJudgments[0]>>()
-    allJudgments.forEach((j) => {
-      if (!judgmentsMap.has(j.registrationId)) {
-        judgmentsMap.set(j.registrationId, new Map())
+    const judgmentsMap = new Map<string, Map<string, JudgmentRow>>()
+    for (const j of allJudgments) {
+      let perReg = judgmentsMap.get(j.registrationId)
+      if (!perReg) {
+        perReg = new Map()
+        judgmentsMap.set(j.registrationId, perReg)
       }
-      judgmentsMap.get(j.registrationId)!.set(j.judgeId, j)
-    })
+      perReg.set(j.judgeId, j)
+    }
 
-    // Create a map of reward points by registrationId
     const rewardsMap = new Map(rewards.map((r) => [r.registrationId, r.rewardPoints]))
+
+    // Compute totalScore per registration in-app (single judgment read), filter to score > 0
+    const results = regsWithSchools
+      .map((r) => {
+        const perReg = judgmentsMap.get(r.registrationId)
+        let totalScore = 0
+        if (perReg) for (const j of perReg.values()) totalScore += j.score
+        return { ...r, totalScore }
+      })
+      .filter((r) => r.totalScore > 0)
 
     // Build detailed results with judge scores
     const detailedResults = results
