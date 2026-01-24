@@ -206,6 +206,7 @@ export default defineEventHandler(async (event) => {
       eventName: string
       eventType: string
       ageCategory: string
+      chestNumber: string | null
       teamName: string | null
     }
 
@@ -236,6 +237,7 @@ export default defineEventHandler(async (event) => {
           eventName: events.name,
           eventType: events.eventType,
           ageCategory: events.ageCategory,
+          chestNumber: registrations.chestNumber,
           teamName: registrations.teamName,
           schoolId: registrations.schoolId,
           schoolName: schools.name,
@@ -390,6 +392,7 @@ export default defineEventHandler(async (event) => {
           eventName: r.eventName,
           eventType: r.eventType,
           ageCategory: r.ageCategory,
+          chestNumber: r.chestNumber || null,
           teamName,
           studentName,
           schoolId: r.schoolId,

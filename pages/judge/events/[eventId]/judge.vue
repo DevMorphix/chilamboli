@@ -58,7 +58,7 @@
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1">
                 <h3 class="text-lg font-semibold text-gray-900">
-                  {{ registration.registrationCode || `Registration #${registration.id.slice(0, 8).toUpperCase()}` }}
+                {{ registration.chestNumber || `Registration #${registration.id.slice(0, 8).toUpperCase()}` }}
                 </h3>
                 <p class="text-sm text-gray-500 mt-1">
                   <span v-if="registration.participantCount">

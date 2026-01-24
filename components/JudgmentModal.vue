@@ -12,7 +12,7 @@
       <div class="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between z-10">
         <div class="flex-1 min-w-0">
           <div class="text-2xl font-bold text-gray-900 mb-1">
-            {{ registration.registrationCode || `Registration #${registration.id.slice(0, 8).toUpperCase()}` }}
+            {{ registration.chestNumber || `Registration #${registration.id.slice(0, 8).toUpperCase()}` }}
           </div>
           <p class="text-xs text-gray-500">
             {{ registration.participantCount }} participant{{ registration.participantCount !== 1 ? 's' : '' }}

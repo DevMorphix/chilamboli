@@ -140,7 +140,7 @@ export default defineEventHandler(async (event) => {
 
       return {
         id: row.registration.id,
-        registrationCode: row.registration.registrationCode,
+        chestNumber: row.registration.chestNumber ?? null,
         participantCount: participantCountsMap.get(row.registration.id) || 0,
         judgment: thisJudgeJudgment
           ? {

@@ -141,6 +141,7 @@ export const registrations = sqliteTable("registrations", {
   eventId: text("event_id")
     .notNull()
     .references(() => events.id),
+  chestNumber: text("chest_number"), // Judges see this; used on leaderboard & reports. NULL until seeded.
   teamName: text("team_name"),
   schoolId: text("school_id")
     .notNull()

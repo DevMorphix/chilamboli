@@ -77,7 +77,7 @@
             <div class="flex items-center justify-between mb-3">
               <div class="flex-1 min-w-0">
                 <div class="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
-                  {{ registration.registrationCode || `#${registration.id.slice(0, 8).toUpperCase()}` }}
+                  {{ registration.chestNumber || `#${registration.id.slice(0, 8).toUpperCase()}` }}
                 </div>
                 <p class="text-xs text-gray-500">
                   {{ registration.participantCount }} participant{{ registration.participantCount !== 1 ? 's' : '' }}

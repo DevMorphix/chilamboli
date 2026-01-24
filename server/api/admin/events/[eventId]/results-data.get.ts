@@ -63,6 +63,7 @@ export default defineEventHandler(async (event) => {
     const regsWithSchools = await db
       .select({
         registrationId: registrations.id,
+        chestNumber: registrations.chestNumber,
         teamName: registrations.teamName,
         schoolId: registrations.schoolId,
         schoolName: schools.name,
@@ -141,6 +142,7 @@ export default defineEventHandler(async (event) => {
         const rewardPoints = rewardsMap.get(result.registrationId) || 0
         return {
           registrationId: result.registrationId,
+          chestNumber: result.chestNumber ?? null,
           teamName: result.teamName,
           schoolName: result.schoolName || "-",
           schoolCode: result.schoolCode || "-",

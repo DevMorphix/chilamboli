@@ -15,6 +15,7 @@ interface EventInfo {
 
 interface LeaderboardEntry {
   registrationId: string
+  chestNumber: string | null
   teamName: string | null
   studentName: string | null
   schoolId: string | null
@@ -99,6 +100,7 @@ export default defineEventHandler(async (event) => {
         .select({
           eventId: registrations.eventId,
           registrationId: registrations.id,
+          chestNumber: registrations.chestNumber,
           teamName: registrations.teamName,
           schoolId: registrations.schoolId,
           schoolName: schools.name,
@@ -178,6 +180,7 @@ export default defineEventHandler(async (event) => {
             const rewardPoints = rewardsMap.get(result.registrationId) || 0
             return {
               registrationId: result.registrationId,
+              chestNumber: result.chestNumber || null,
               teamName: result.teamName || null,
               studentName: result.teamName ? null : (studentNamesByRegId.get(result.registrationId) || null),
               schoolId: result.schoolId,

@@ -149,6 +149,7 @@
               <thead class="bg-gray-50">
                 <tr>
                   <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Rank</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 whitespace-nowrap">Chest #</th>
                   <th class="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     {{ eventLeaderboard.event.eventType === 'Individual' ? 'Student Name' : 'Team Name' }}
                   </th>
@@ -173,6 +174,9 @@
                       <span v-else-if="index === 2" class="text-xl">🥉</span>
                       <span v-else class="text-sm font-semibold text-gray-900">{{ entry.rank }}</span>
                     </div>
+                  </td>
+                  <td class="whitespace-nowrap px-4 py-3">
+                    <code class="text-xs font-mono text-gray-600">{{ entry.chestNumber || '-' }}</code>
                   </td>
                   <td class="px-4 py-3">
                     <div class="text-sm font-medium text-gray-900">
@@ -332,6 +336,7 @@ import type { Ref } from 'vue'
 // Types
 interface LeaderboardEntry {
   registrationId?: string
+  chestNumber?: string | null
   schoolId?: string
   location?: string
   totalGradePoints?: number
