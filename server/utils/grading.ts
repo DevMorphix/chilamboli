@@ -23,24 +23,16 @@ export function calculateGrade(
   const normalizedScore =
     maxPossibleScore > 0 ? (totalScore / maxPossibleScore) * 100 : 0
 
-  // Assign grade and grade point based on normalized score (10-point bands: 90, 80, 70, …)
+  // Assign grade and grade point based on normalized score
   const gradeThresholds = [
-    { min: 90, grade: "A+", gradePoint: 10 },
-    { min: 80, grade: "A", gradePoint: 9 },
-    { min: 70, grade: "B+", gradePoint: 8 },
-    { min: 60, grade: "B", gradePoint: 7 },
-    { min: 50, grade: "C+", gradePoint: 6 },
-    { min: 40, grade: "C", gradePoint: 5 },
-    { min: 30, grade: "D+", gradePoint: 4 },
-    { min: 20, grade: "D", gradePoint: 3 },
-    { min: 10, grade: "E", gradePoint: 2 },
+    { min: 90, grade: "A", gradePoint: 10 },
+    { min: 80, grade: "B", gradePoint: 8 },
+    { min: 70, grade: "C", gradePoint: 6 },
+    { min: 60, grade: "D", gradePoint: 4 },
+    { min: 0, grade: "E", gradePoint: 2 },
   ]
 
-  const { grade, gradePoint } =
-    gradeThresholds.find((t) => normalizedScore >= t.min) || {
-      grade: "F",
-      gradePoint: 0,
-    }
+  const { grade, gradePoint } = gradeThresholds.find((t) => normalizedScore >= t.min)!
 
   return {
     grade,

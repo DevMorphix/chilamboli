@@ -4,7 +4,13 @@ import { eq, sql } from "drizzle-orm"
 import { nanoid } from "nanoid"
 
 // Position reward points mapping
-const POSITION_REWARDS: Record<number, number> = {
+const INDIVIDUAL_POSITION_REWARDS: Record<number, number> = {
+  1: 5, // 1st position: 5 points
+  2: 3, // 2nd position: 3 points
+  3: 1, // 3rd position: 1 point
+}
+
+const GROUP_POSITION_REWARDS: Record<number, number> = {
   1: 10, // 1st position: 10 points
   2: 5,  // 2nd position: 5 points
   3: 3,  // 3rd position: 3 points
@@ -62,6 +68,11 @@ export default defineEventHandler(async (event) => {
       // Get top 3 positions
       const topThree = rankedResults.slice(0, 3)
 
+      // Determine position rewards based on event type
+      const positionRewardsMap = existingEvent.eventType === "Individual" 
+        ? INDIVIDUAL_POSITION_REWARDS 
+        : GROUP_POSITION_REWARDS
+
       // Remove any existing position rewards for this event (in case of republishing)
       await db
         .delete(positionRewards)
@@ -70,13 +81,13 @@ export default defineEventHandler(async (event) => {
       // Insert new position rewards for top 3
       if (topThree.length > 0) {
         const rewardsToInsert = topThree
-          .filter((result) => result.rank <= 3 && POSITION_REWARDS[result.rank])
+          .filter((result) => result.rank <= 3 && positionRewardsMap[result.rank])
           .map((result) => ({
             id: nanoid(),
             registrationId: result.registrationId,
             eventId: eventId,
             position: result.rank,
-            rewardPoints: POSITION_REWARDS[result.rank],
+            rewardPoints: positionRewardsMap[result.rank],
           }))
 
         if (rewardsToInsert.length > 0) {
