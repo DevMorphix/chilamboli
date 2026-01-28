@@ -195,15 +195,15 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm">
                   <div class="flex items-center gap-2">
-                    <NuxtLink
-                      :to="`/faculty/registrations/edit/${registration.id}`"
-                      class="text-blue-600 hover:text-blue-700 font-medium px-4 py-2 bg-blue-50 rounded transition-colors"
+                    <button
+                      disabled
+                      class="text-gray-400 cursor-not-allowed font-medium px-4 py-2 bg-gray-100 rounded opacity-50 pointer-events-none"
                     >
                       Edit
-                    </NuxtLink>
+                    </button>
                     <button
-                      @click="handleDeleteClick(registration.id)"
-                      class="text-red-600 hover:text-red-700 font-medium px-4 py-2 bg-red-50 rounded transition-colors"
+                      disabled
+                      class="text-gray-400 cursor-not-allowed font-medium px-4 py-2 bg-gray-100 rounded opacity-50 pointer-events-none"
                     >
                       Delete
                     </button>
