@@ -612,16 +612,23 @@ const handleSubmit = async () => {
     }
 
     // Create registration using existing API
+    const registrationBody: any = {
+      eventId: selectedEvent.value.id,
+      schoolId: selectedSchool.value.id,
+      teamName: selectedEvent.value.eventType === 'Group' ? teamName.value : null,
+      participantIds: allParticipantIds,
+      registeredByFacultyId: selectedFaculty.value.id,
+      isFacultySelfRegistration: false,
+    }
+
+    if (admin.value?.userId) {
+      registrationBody.createdByProxyUserId = admin.value.userId
+      registrationBody.createdByProxyUserType = 'admin'
+    }
+    
     await $fetch('/api/registrations/create', {
       method: 'POST',
-      body: {
-        eventId: selectedEvent.value.id,
-        schoolId: selectedSchool.value.id,
-        teamName: selectedEvent.value.eventType === 'Group' ? teamName.value : null,
-        participantIds: allParticipantIds,
-        registeredByFacultyId: selectedFaculty.value.id,
-        isFacultySelfRegistration: false,
-      },
+      body: registrationBody,
     })
 
     success.value = `Registration created successfully! ${validNewStudents.length > 0 ? `Created ${validNewStudents.length} new student(s).` : ''}`

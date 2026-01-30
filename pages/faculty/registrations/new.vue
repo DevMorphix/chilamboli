@@ -496,16 +496,18 @@ const handleSubmit = async () => {
   loading.value = true
 
   try {
+    const registrationBody: any = {
+      eventId: selectedEventId.value,
+      schoolId: faculty.value.schoolId,
+      teamName: teamName.value || null,
+      participantIds: isSpecialEvent.value ? [] : (isSpecialGroupEvent.value ? selectedFacultyIds.value : selectedStudentIds.value),
+      registeredByFacultyId: faculty.value.id,
+      isFacultySelfRegistration: isSpecialEvent.value,
+    }
+    
     await $fetch('/api/registrations/create', {
       method: 'POST',
-      body: {
-        eventId: selectedEventId.value,
-        schoolId: faculty.value.schoolId,
-        teamName: teamName.value || null,
-        participantIds: isSpecialEvent.value ? [] : (isSpecialGroupEvent.value ? selectedFacultyIds.value : selectedStudentIds.value),
-        registeredByFacultyId: faculty.value.id,
-        isFacultySelfRegistration: isSpecialEvent.value,
-      },
+      body: registrationBody,
     })
 
     success.value = 'Registration successful!'

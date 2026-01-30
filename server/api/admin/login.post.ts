@@ -18,7 +18,11 @@ export default defineEventHandler(async (event) => {
 
   try {
     const [adminAuth] = await db
-      .select({ email: auth.email, password: auth.password })
+      .select({ 
+        email: auth.email, 
+        password: auth.password,
+        userId: auth.userId 
+      })
       .from(auth)
       .where(and(eq(auth.email, email), eq(auth.userType, "admin")))
       .limit(1)
@@ -45,6 +49,7 @@ export default defineEventHandler(async (event) => {
       message: "Login successful",
       admin: {
         email: adminAuth.email,
+        userId: adminAuth.userId,
         role: "admin",
       },
     }

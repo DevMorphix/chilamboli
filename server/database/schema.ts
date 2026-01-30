@@ -149,6 +149,8 @@ export const registrations = sqliteTable("registrations", {
   registeredByFacultyId: text("registered_by_faculty_id")
     .notNull()
     .references(() => faculty.id),
+  createdByProxyUserId: text("created_by_proxy_user_id"), // ID of admin/volunteer who created this registration on behalf of faculty
+  createdByProxyUserType: text("created_by_proxy_user_type", { enum: ["admin", "volunteer"] }), // Type of proxy user (null if faculty created it themselves)
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

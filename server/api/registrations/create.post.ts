@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   const db = useDB(event)
   const body = await readBody(event)
 
-  const { eventId, schoolId, teamName, participantIds, registeredByFacultyId, isFacultySelfRegistration } = body
+  const { eventId, schoolId, teamName, participantIds, registeredByFacultyId, isFacultySelfRegistration, createdByProxyUserId, createdByProxyUserType } = body
 
   if (!eventId || !schoolId || !registeredByFacultyId) {
     throw createError({
@@ -111,13 +111,18 @@ export default defineEventHandler(async (event) => {
 
       // Create the registration for faculty self-registration
       const registrationId = nanoid()
-      await db.insert(registrations).values({
+      const registrationValues: any = {
         id: registrationId,
         eventId,
         schoolId,
         teamName: null,
         registeredByFacultyId,
-      })
+      }
+      if (createdByProxyUserId) {
+        registrationValues.createdByProxyUserId = createdByProxyUserId
+        registrationValues.createdByProxyUserType = createdByProxyUserType || null
+      }
+      await db.insert(registrations).values(registrationValues)
 
       // Create participant entry with participantId and participantType
       await db.insert(registrationParticipants).values({
@@ -177,13 +182,18 @@ export default defineEventHandler(async (event) => {
 
       // Create the registration
       const registrationId = nanoid()
-      await db.insert(registrations).values({
+      const registrationValues: any = {
         id: registrationId,
         eventId,
         schoolId,
         teamName: teamName || null,
         registeredByFacultyId,
-      })
+      }
+      if (createdByProxyUserId) {
+        registrationValues.createdByProxyUserId = createdByProxyUserId
+        registrationValues.createdByProxyUserType = createdByProxyUserType || null
+      }
+      await db.insert(registrations).values(registrationValues)
 
       // Create participant entries with participantType: "faculty"
       const participantEntries = participantIds.map((facultyId: string) => ({
@@ -323,13 +333,18 @@ export default defineEventHandler(async (event) => {
 
     // Create the registration
     const registrationId = nanoid()
-    await db.insert(registrations).values({
+    const registrationValues: any = {
       id: registrationId,
       eventId,
       schoolId,
       teamName: teamName || null,
       registeredByFacultyId,
-    })
+    }
+    if (createdByProxyUserId) {
+      registrationValues.createdByProxyUserId = createdByProxyUserId
+      registrationValues.createdByProxyUserType = createdByProxyUserType || null
+    }
+    await db.insert(registrations).values(registrationValues)
 
     // Create participant entries in the junction table
     const participantEntries = participantIds.map((studentId: string) => ({
