@@ -6,6 +6,12 @@ import bcrypt from "bcryptjs"
 
 // Create a new admin account
 export default defineEventHandler(async (event) => {
+  throw createError({
+    statusCode: 403,
+    message: "Admin account creation is currently disabled",
+  })
+
+  /*
   const db = useDB(event)
   const body = await readBody(event)
 
@@ -91,6 +97,7 @@ export default defineEventHandler(async (event) => {
       message: "Failed to create admin account",
     })
   }
+  */
 })
 
 
