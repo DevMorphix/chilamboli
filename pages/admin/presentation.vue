@@ -24,24 +24,24 @@
             <h1 class="text-4xl font-bold text-gray-900 mb-2 tracking-tight animate-pulse-subtle" style="font-family: 'Poppins', sans-serif;">
               District Rankings
             </h1>
-            <p class="text-base text-gray-600 font-medium">Top 10 Districts by Grade Points</p>
+            <p class="text-base text-gray-600 font-medium">All Districts by Grade Points</p>
           </div>
 
           <!-- Leaderboard -->
-          <div v-if="districtLeaderboard.length === 0" class="text-center py-16">
+          <div v-if="paginatedDistrictLeaderboard.length === 0" class="text-center py-16">
             <p class="text-lg text-gray-400 font-medium">No rankings available</p>
           </div>
           
           <div v-else class="space-y-3">
             <div
-              v-for="(entry, index) in districtLeaderboard"
+              v-for="(entry, index) in paginatedDistrictLeaderboard"
               :key="entry.location"
               class="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 px-6 py-4 animate-slide-in"
               :style="{ animationDelay: `${index * 0.05}s` }"
               :class="{
-                'bg-gradient-to-r from-amber-50 via-amber-50/50 to-white border-amber-300 shadow-md animate-glow': index === 0,
-                'bg-gradient-to-r from-gray-50 via-gray-50/50 to-white border-gray-300 shadow-md': index === 1,
-                'bg-gradient-to-r from-orange-50 via-orange-50/50 to-white border-orange-300 shadow-md': index === 2,
+                'bg-gradient-to-r from-amber-50 via-amber-50/50 to-white border-amber-300 shadow-md animate-glow': entry.rank === 1,
+                'bg-gradient-to-r from-gray-50 via-gray-50/50 to-white border-gray-300 shadow-md': entry.rank === 2,
+                'bg-gradient-to-r from-orange-50 via-orange-50/50 to-white border-orange-300 shadow-md': entry.rank === 3,
               }"
             >
               <div class="flex items-center justify-between">
@@ -49,19 +49,19 @@
                   <!-- Rank -->
                   <div class="flex-shrink-0">
                     <div
-                      v-if="index === 0"
+                      v-if="entry.rank === 1"
                       class="w-14 h-14 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg "
                     >
                       <span class="text-xl font-bold text-white">1</span>
                     </div>
                     <div
-                      v-else-if="index === 1"
+                      v-else-if="entry.rank === 2"
                       class="w-14 h-14 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center shadow-lg"
                     >
                       <span class="text-xl font-bold text-white">2</span>
                     </div>
                     <div
-                      v-else-if="index === 2"
+                      v-else-if="entry.rank === 3"
                       class="w-14 h-14 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-lg"
                     >
                       <span class="text-xl font-bold text-white">3</span>
@@ -106,24 +106,24 @@
             <h1 class="text-4xl font-bold text-gray-900 mb-2 tracking-tight animate-pulse-subtle" style="font-family: 'Poppins', sans-serif;">
               School Rankings
             </h1>
-            <p class="text-base text-gray-600 font-medium">Top 10 Schools by Grade Points</p>
+            <p class="text-base text-gray-600 font-medium">All Schools by Grade Points</p>
           </div>
 
           <!-- Leaderboard -->
-          <div v-if="schoolLeaderboard.length === 0" class="text-center py-16">
+          <div v-if="paginatedSchoolLeaderboard.length === 0" class="text-center py-16">
             <p class="text-lg text-gray-400 font-medium">No rankings available</p>
           </div>
           
           <div v-else class="space-y-3">
             <div
-              v-for="(entry, index) in schoolLeaderboard"
+              v-for="(entry, index) in paginatedSchoolLeaderboard"
               :key="entry.schoolId"
               class="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 px-6 py-4 animate-slide-in"
               :style="{ animationDelay: `${index * 0.05}s` }"
               :class="{
-                'bg-gradient-to-r from-amber-50 via-amber-50/50 to-white border-amber-300 shadow-md animate-glow': index === 0,
-                'bg-gradient-to-r from-gray-50 via-gray-50/50 to-white border-gray-300 shadow-md': index === 1,
-                'bg-gradient-to-r from-orange-50 via-orange-50/50 to-white border-orange-300 shadow-md': index === 2,
+                'bg-gradient-to-r from-amber-50 via-amber-50/50 to-white border-amber-300 shadow-md animate-glow': entry.rank === 1,
+                'bg-gradient-to-r from-gray-50 via-gray-50/50 to-white border-gray-300 shadow-md': entry.rank === 2,
+                'bg-gradient-to-r from-orange-50 via-orange-50/50 to-white border-orange-300 shadow-md': entry.rank === 3,
               }"
             >
               <div class="flex items-center justify-between">
@@ -131,19 +131,19 @@
                   <!-- Rank -->
                   <div class="flex-shrink-0">
                     <div
-                      v-if="index === 0"
+                      v-if="entry.rank === 1"
                       class="w-14 h-14 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg "
                     >
                       <span class="text-xl font-bold text-white">1</span>
                     </div>
                     <div
-                      v-else-if="index === 1"
+                      v-else-if="entry.rank === 2"
                       class="w-14 h-14 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center shadow-lg"
                     >
                       <span class="text-xl font-bold text-white">2</span>
                     </div>
                     <div
-                      v-else-if="index === 2"
+                      v-else-if="entry.rank === 3"
                       class="w-14 h-14 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-lg"
                     >
                       <span class="text-xl font-bold text-white">3</span>
@@ -182,15 +182,30 @@
 
     <!-- View Indicator -->
     <div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20">
-      <div class="flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-full px-4 py-2 border border-gray-200 shadow-lg">
-        <div 
-          class="h-2 rounded-full transition-all duration-500 ease-out"
-          :class="currentView === 'district' ? 'bg-gray-900 w-8' : 'bg-gray-300 w-2'"
-        ></div>
-        <div 
-          class="h-2 rounded-full transition-all duration-500 ease-out"
-          :class="currentView === 'school' ? 'bg-gray-900 w-8' : 'bg-gray-300 w-2'"
-        ></div>
+      <div class="flex items-center gap-3 bg-white/95 backdrop-blur-sm rounded-full px-5 py-3 border border-gray-200 shadow-lg">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-medium text-gray-600">Districts</span>
+          <div class="flex items-center gap-1">
+            <div 
+              v-for="i in totalDistrictPages"
+              :key="`district-${i}`"
+              class="h-2 rounded-full transition-all duration-500 ease-out"
+              :class="currentView === 'district' && currentDistrictPage === i - 1 ? 'bg-blue-600 w-8' : 'bg-gray-300 w-2'"
+            ></div>
+          </div>
+        </div>
+        <div class="h-4 w-px bg-gray-300"></div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-medium text-gray-600">Schools</span>
+          <div class="flex items-center gap-1">
+            <div 
+              v-for="i in totalSchoolPages"
+              :key="`school-${i}`"
+              class="h-2 rounded-full transition-all duration-500 ease-out"
+              :class="currentView === 'school' && currentSchoolPage === i - 1 ? 'bg-green-600 w-8' : 'bg-gray-300 w-2'"
+            ></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -215,8 +230,27 @@ const schoolLeaderboard = ref<any[]>([])
 const loading = ref(false)
 const lastUpdated = ref<number | null>(null)
 const currentView = ref<'district' | 'school'>('district')
+const currentDistrictPage = ref(0)
+const currentSchoolPage = ref(0)
+const itemsPerPage = 6
 let pollInterval: NodeJS.Timeout | null = null
 let viewCycleInterval: NodeJS.Timeout | null = null
+
+// Computed properties for pagination
+const totalDistrictPages = computed(() => Math.ceil(districtLeaderboard.value.length / itemsPerPage) || 1)
+const totalSchoolPages = computed(() => Math.ceil(schoolLeaderboard.value.length / itemsPerPage) || 1)
+
+const paginatedDistrictLeaderboard = computed(() => {
+  const start = currentDistrictPage.value * itemsPerPage
+  const end = start + itemsPerPage
+  return districtLeaderboard.value.slice(start, end)
+})
+
+const paginatedSchoolLeaderboard = computed(() => {
+  const start = currentSchoolPage.value * itemsPerPage
+  const end = start + itemsPerPage
+  return schoolLeaderboard.value.slice(start, end)
+})
 
 const fetchDistrictLeaderboard = async () => {
   try {
@@ -224,7 +258,7 @@ const fetchDistrictLeaderboard = async () => {
       params: {
         type: 'district',
         context: 'presentation', // Presentation context - only shows completed events
-        limit: 10,
+        // No limit - fetch all districts
       },
     }) as any
     
@@ -243,7 +277,7 @@ const fetchSchoolLeaderboard = async () => {
       params: {
         type: 'school',
         context: 'presentation', // Presentation context - only shows completed events
-        limit: 10,
+        // No limit - fetch all schools
       },
     }) as any
     
@@ -271,9 +305,23 @@ const loadLeaderboards = async () => {
 
 const cycleViews = () => {
   if (currentView.value === 'district') {
-    currentView.value = 'school'
+    // Check if there are more district pages
+    if (currentDistrictPage.value < totalDistrictPages.value - 1) {
+      currentDistrictPage.value++
+    } else {
+      // All district pages shown, switch to schools
+      currentView.value = 'school'
+      currentDistrictPage.value = 0 // Reset for next cycle
+    }
   } else {
-    currentView.value = 'district'
+    // On school view
+    if (currentSchoolPage.value < totalSchoolPages.value - 1) {
+      currentSchoolPage.value++
+    } else {
+      // All school pages shown, switch back to districts
+      currentView.value = 'district'
+      currentSchoolPage.value = 0 // Reset for next cycle
+    }
   }
 }
 
@@ -307,10 +355,10 @@ onMounted(() => {
   // Request fullscreen
   requestFullscreen()
   
-  // Set up polling every 5 minutes (300000 ms)
+  // Set up polling every 1 minute (60000 ms)
   pollInterval = setInterval(() => {
     loadLeaderboards()
-  }, 5 * 60 * 1000)
+  }, 60 * 1000)
   
   // Cycle views every 10 seconds
   viewCycleInterval = setInterval(() => {
