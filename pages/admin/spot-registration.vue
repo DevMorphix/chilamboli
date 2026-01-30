@@ -85,17 +85,49 @@
                 </option>
               </select>
 
-              <div v-if="selectedEvent" class="mt-3 p-4 bg-blue-50 rounded-lg">
-                <p class="text-sm text-gray-700">
-                  <span class="font-medium">Type:</span> {{ selectedEvent.eventType }}<template v-if="selectedEvent.ageCategory === 'Combined'"> (Combined)</template> •
-                  <span class="font-medium">Category:</span> {{ selectedEvent.ageCategory }}
-                  <template v-if="selectedEvent.maxTeamSize">
-                    • <span class="font-medium">Max Team Size:</span> {{ selectedEvent.maxTeamSize }}
-                  </template>
-                </p>
-                <p v-if="selectedEvent.description" class="text-sm text-gray-600 mt-1">
-                  {{ selectedEvent.description }}
-                </p>
+              <div v-if="selectedEvent" class="mt-3 space-y-3">
+                <div class="p-4 bg-blue-50 rounded-lg">
+                  <p class="text-sm text-gray-700">
+                    <span class="font-medium">Type:</span> {{ selectedEvent.eventType }}<template v-if="selectedEvent.ageCategory === 'Combined'"> (Combined)</template> •
+                    <span class="font-medium">Category:</span> {{ selectedEvent.ageCategory }}
+                    <template v-if="selectedEvent.maxTeamSize">
+                      • <span class="font-medium">Max Team Size:</span> {{ selectedEvent.maxTeamSize }}
+                    </template>
+                  </p>
+                  <p v-if="selectedEvent.description" class="text-sm text-gray-600 mt-1">
+                    {{ selectedEvent.description }}
+                  </p>
+                </div>
+                
+                <!-- Warning for duplicate eventType + ageCategory -->
+                <div v-if="existingSameType.length > 0" class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                      <svg class="h-5 w-5 text-yellow-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                      </svg>
+                    </div>
+                    <div class="ml-3">
+                      <h3 class="text-sm font-medium text-yellow-800">
+                        Warning: Duplicate Registration Detected
+                      </h3>
+                      <div class="mt-2 text-sm text-yellow-700">
+                        <p>
+                          This school has already registered for <strong>{{ selectedEvent.eventType }}</strong> events in the <strong>{{ selectedEvent.ageCategory }}</strong> category.
+                        </p>
+                        <p class="mt-1">
+                          Existing registration(s): <strong>{{ existingSameType.map(r => r.event?.name || 'Unknown').join(', ') }}</strong>
+                        </p>
+                        <p class="mt-2 font-medium">
+                          Note: Schools are typically allowed only one registration per event type per age category (excluding Combined and Special events).
+                        </p>
+                        <p class="mt-1 text-xs italic">
+                          You can still proceed with this registration if needed.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -349,6 +381,28 @@ const filteredStudents = computed(() => {
   })
 })
 
+// All existing registrations for this eventType + ageCategory combo (excluding Combined and Special)
+const existingSameType = computed(() => {
+  if (!selectedEvent.value || !selectedSchool.value || allRegistrations.value.length === 0) {
+    return []
+  }
+
+  const eventType = selectedEvent.value.eventType
+  const ageCategory = selectedEvent.value.ageCategory
+
+  if (ageCategory === 'Combined' || ageCategory === 'Special') {
+    return []
+  }
+
+  return allRegistrations.value.filter((reg: any) => {
+    if (!reg.event) return false
+    return (
+      reg.event.eventType === eventType &&
+      reg.event.ageCategory === ageCategory
+    )
+  })
+})
+
 const canSubmit = computed(() => {
   if (!selectedSchool.value || !selectedFaculty.value || !selectedEvent.value) return false
   
@@ -421,18 +475,26 @@ const selectSchool = async (school: any) => {
   selectedStudentIds.value = []
   newStudents.value = [{ id: ++newStudentIdCounter, studentName: '', dateOfBirth: '', gender: '' }]
   error.value = ''
+  allRegistrations.value = []
 
-  // Get the first faculty from the school
+  // Get the first faculty from the school and fetch all registrations
   try {
-    const response = await $fetch(`/api/faculty/by-school?schoolId=${school.id}&limit=1`)
-    const facultyList = response.data || []
+    const [facultyRes, registrationsRes] = await Promise.all([
+      $fetch(`/api/faculty/by-school?schoolId=${school.id}&limit=1`),
+      $fetch(`/api/registrations/by-school?schoolId=${school.id}&limit=1000`)
+    ])
+    
+    const facultyList = facultyRes.data || []
     if (facultyList.length > 0) {
       selectedFaculty.value = facultyList[0]
     } else {
       error.value = 'No faculty members found for this school. Please add at least one faculty member before creating registrations.'
     }
+    
+    // Store all registrations for this school
+    allRegistrations.value = registrationsRes.data || registrationsRes.registrations || []
   } catch (err) {
-    console.error('Failed to fetch faculty:', err)
+    console.error('Failed to fetch faculty or registrations:', err)
     error.value = 'Failed to load faculty. Please try again.'
   }
 }
@@ -473,12 +535,15 @@ const onEventSelect = async () => {
       params.filters = JSON.stringify({ ageCategory: selectedEvent.value.ageCategory })
     }
 
-    const [studentsRes, registrationsRes] = await Promise.all([
-      $fetch(`/api/students/by-school`, { params }),
-      $fetch(`/api/registrations/by-school?schoolId=${selectedSchool.value.id}&sortBy=createdAt&sortOrder=desc`),
-    ])
+    // Fetch students (registrations already fetched when school was selected)
+    const studentsRes = await $fetch(`/api/students/by-school`, { params })
     students.value = studentsRes.data || studentsRes.students || []
-    allRegistrations.value = registrationsRes.data || registrationsRes.registrations || []
+    
+    // Only refresh registrations if not already loaded
+    if (allRegistrations.value.length === 0) {
+      const registrationsRes = await $fetch(`/api/registrations/by-school?schoolId=${selectedSchool.value.id}&limit=1000`)
+      allRegistrations.value = registrationsRes.data || registrationsRes.registrations || []
+    }
   } catch (err) {
     console.error('Failed to fetch students:', err)
     error.value = 'Failed to load students. Please try again.'
