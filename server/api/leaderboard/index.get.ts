@@ -139,7 +139,7 @@ export default defineEventHandler(async (event) => {
 
       for (const reg of registrationResults) {
         const maxScore = judgesCountMap.get(reg.eventId) || 1
-        const normalizedScore = maxScore > 0 ? ((reg.totalScore || 0) / (maxScore * 10)) * 100 : 0
+        const normalizedScore = maxScore > 0 ? ((reg.totalScore || 0) / (maxScore * 50)) * 100 : 0
 
         const existing = studentScores.get(reg.studentId)
         if (existing) {
@@ -279,7 +279,7 @@ export default defineEventHandler(async (event) => {
       // Calculate grade points and aggregate (including reward points)
       const registrationsWithGradePoints = registrationResults.map((r) => {
         const maxScore = judgesCountMap.get(r.eventId) || 1
-        const gradeInfo = calculateGrade(r.totalScore || 0, maxScore * 10)
+        const gradeInfo = calculateGrade(r.totalScore || 0, maxScore * 50)
         const rewardPoints = rewardsMap.get(r.registrationId) || 0
         return { ...r, gradePoint: gradeInfo.gradePoint + rewardPoints }
       })
@@ -382,7 +382,7 @@ export default defineEventHandler(async (event) => {
     const leaderboard = results
       .map((r) => {
         const maxScore = judgesCountMap.get(r.eventId) || 1
-        const gradeInfo = calculateGrade(r.totalScore || 0, maxScore * 10)
+        const gradeInfo = calculateGrade(r.totalScore || 0, maxScore * 50)
         const rewardPoints = rewardsMap.get(r.registrationId) || 0
         const teamName = r.teamName || null
         const studentName = teamName ? null : (studentNamesByRegId.get(r.registrationId) || null)

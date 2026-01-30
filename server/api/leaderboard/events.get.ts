@@ -171,7 +171,7 @@ export default defineEventHandler(async (event) => {
         if (results.length === 0) return null
 
         const maxScore = judgesCountMap.get(eventItem.id) || 1
-        const maxPossibleScore = maxScore * 10
+        const maxPossibleScore = maxScore * 50
 
         const leaderboard = results
           .map((result) => {

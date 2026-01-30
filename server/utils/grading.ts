@@ -12,7 +12,7 @@ export interface GradeInfo {
 /**
  * Calculate grade and grade point from total score and max possible score
  * @param totalScore Sum of scores from all judges (e.g., 27.8)
- * @param maxPossibleScore Maximum possible score (e.g., 30 for 3 judges * 10)
+ * @param maxPossibleScore Maximum possible score (e.g., 150 for 3 judges * 50)
  * @returns Grade info with grade, grade point, and normalized score (0-100)
  */
 export function calculateGrade(

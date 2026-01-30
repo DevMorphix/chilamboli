@@ -44,7 +44,7 @@
         <form @submit.prevent="handleSubmit" class="space-y-5">
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-3">
-              Score (0-10)
+              Score (0-50)
             </label>
             <input
               :value="judgmentForm.score !== null ? judgmentForm.score.toString() : ''"
@@ -66,7 +66,7 @@
                 {{ scoreError }}
               </p>
               <p v-else class="text-xs text-gray-500">
-                Enter a score between 0.0 and 10.0 (one decimal place allowed)
+                Enter a score between 0.0 and 50.0 (one decimal place allowed)
               </p>
             </div>
           </div>
@@ -155,8 +155,8 @@ const validateScore = (value: string): { valid: boolean; numValue: number | null
     return { valid: false, numValue: null, error: 'Please enter a valid number' }
   }
 
-  if (numValue < 0 || numValue > 10) {
-    return { valid: false, numValue: numValue, error: 'Score must be between 0.0 and 10.0' }
+  if (numValue < 0 || numValue > 50) {
+    return { valid: false, numValue: numValue, error: 'Score must be between 0.0 and 50.0' }
   }
 
   return { valid: true, numValue: numValue, error: '' }
@@ -183,10 +183,10 @@ const handleScoreInput = (event: Event) => {
     }
   }
   
-  // Prevent values greater than 10
+  // Prevent values greater than 50
   const numValue = cleaned ? parseFloat(cleaned) : NaN
-  if (!isNaN(numValue) && numValue > 10) {
-    cleaned = '10'
+  if (!isNaN(numValue) && numValue > 50) {
+    cleaned = '50'
   }
   
   // Update the input value
@@ -233,21 +233,21 @@ const handleScoreKeydown = (event: KeyboardEvent) => {
   // Allow numbers
   if (/^\d$/.test(key)) {
     const currentValue = target.value
-    // If current value is already at max (10.0), prevent more input
-    if (currentValue === '10' || currentValue === '10.0' || currentValue === '10.') {
+    // If current value is already at max (50.0), prevent more input
+    if (currentValue === '50' || currentValue === '50.0' || currentValue === '50.') {
       if (key !== '0' && key !== '.') {
         event.preventDefault()
         return
       }
     }
-    // If current value is 10 and trying to add more digits after decimal
-    if (currentValue === '10' && key === '0') {
+    // If current value is 50 and trying to add more digits after decimal
+    if (currentValue === '50' && key === '0') {
       return // Allow decimal part
     }
-    // Prevent entering more than 10
+    // Prevent entering more than 50
     const testValue = currentValue + key
     const numValue = parseFloat(testValue)
-    if (!isNaN(numValue) && numValue > 10) {
+    if (!isNaN(numValue) && numValue > 50) {
       event.preventDefault()
       return
     }
@@ -279,10 +279,10 @@ const handleScorePaste = (event: ClipboardEvent) => {
     }
   }
   
-  // Prevent values greater than 10
+  // Prevent values greater than 50
   const numValue = cleaned ? parseFloat(cleaned) : NaN
-  if (!isNaN(numValue) && numValue > 10) {
-    cleaned = '10'
+  if (!isNaN(numValue) && numValue > 50) {
+    cleaned = '50'
   }
   
   // Update input value
@@ -316,12 +316,12 @@ const handleSubmit = () => {
 
   const validation = validateScore(judgmentForm.value.score.toString())
   if (!validation.valid) {
-    scoreError.value = validation.error || 'Please enter a valid score between 0.0 and 10.0'
+    scoreError.value = validation.error || 'Please enter a valid score between 0.0 and 50.0'
     return
   }
 
-  if (judgmentForm.value.score < 0 || judgmentForm.value.score > 10) {
-    scoreError.value = 'Score must be between 0.0 and 10.0'
+  if (judgmentForm.value.score < 0 || judgmentForm.value.score > 50) {
+    scoreError.value = 'Score must be between 0.0 and 50.0'
     return
   }
 

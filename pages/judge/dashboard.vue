@@ -107,7 +107,7 @@
             <div v-if="registration.judgment" class="pt-2 border-t border-gray-200">
               <div class="flex items-center justify-between">
                 <span class="text-xs text-gray-600">Score:</span>
-                <span class="text-base font-bold text-green-700">{{ registration.judgment.score }}/10</span>
+                <span class="text-base font-bold text-green-700">{{ registration.judgment.score }}/50</span>
               </div>
             </div>
             <div v-else class="pt-2 border-t border-gray-200">

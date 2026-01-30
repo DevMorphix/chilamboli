@@ -57,7 +57,7 @@ export default defineEventHandler(async (event) => {
         message: "No judges assigned to this event",
       })
     }
-    const maxPossibleScore = judgeCount * 10
+    const maxPossibleScore = judgeCount * 50
 
     // Registrations + schools only (no judgments). Avoids double-scan of judgments.
     const regsWithSchools = await db

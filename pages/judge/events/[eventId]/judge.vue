@@ -71,7 +71,7 @@
                 v-if="registration.judgment"
                 class="px-3 py-1 text-sm font-medium bg-green-100 text-green-800 rounded-full"
               >
-                Judged ({{ registration.judgment.score }}/10)
+                Judged ({{ registration.judgment.score }}/50)
               </span>
               <span
                 v-else
@@ -96,19 +96,19 @@
               <form @submit.prevent="submitJudgment(registration)" class="space-y-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">
-                    Score (0-10)
+                    Score (0-50)
                   </label>
                   <input
                     v-model.number="scores[registration.id]"
                     type="number"
                     min="0"
-                    max="10"
+                    max="50"
                     step="0.1"
                     required
-                    placeholder="Enter score (0-10)"
+                    placeholder="Enter score (0-50)"
                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
-                  <p class="text-xs text-gray-500 mt-1">Maximum score: 10.0</p>
+                  <p class="text-xs text-gray-500 mt-1">Maximum score: 50.0</p>
                 </div>
 
                 <div>

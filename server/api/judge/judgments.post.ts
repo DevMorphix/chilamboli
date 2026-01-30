@@ -17,11 +17,11 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Validate score is between 0 and 10
-  if (typeof score !== "number" || score < 0 || score > 10) {
+  // Validate score is between 0 and 50
+  if (typeof score !== "number" || score < 0 || score > 50) {
     throw createError({
       statusCode: 400,
-      message: "Score must be between 0 and 10",
+      message: "Score must be between 0 and 50",
     })
   }
 
