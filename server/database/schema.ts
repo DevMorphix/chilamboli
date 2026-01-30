@@ -18,7 +18,7 @@ export const auth = sqliteTable("auth", {
   email: text("email"),
   mobileNumber: text("mobile_number"),
   password: text("password").notNull(),
-  userType: text("user_type", { enum: ["faculty", "admin", "judge"] }).notNull(),
+  userType: text("user_type", { enum: ["faculty", "admin", "judge", "volunteer"] }).notNull(),
   userId: text("user_id").notNull(), // References faculty.id or admin.id or judges.id identifier
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
