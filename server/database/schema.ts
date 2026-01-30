@@ -93,6 +93,7 @@ export const events = sqliteTable("events", {
   gender: text("gender", { enum: ["Boys", "Girls", "All"] }),
   maxTeamSize: integer("max_team_size"),
   isCompleted: integer("is_completed", { mode: "boolean" }).notNull().default(false),
+  registrationClosed: integer("registration_closed", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .$defaultFn(() => new Date()),

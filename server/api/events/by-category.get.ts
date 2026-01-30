@@ -1,12 +1,12 @@
 import { useDB } from "../../utils/db"
 import { events } from "../../database/schema"
-import { eq, or, asc, desc, count } from "drizzle-orm"
+import { eq, or, and, asc, desc, count } from "drizzle-orm"
 import { getPaginationParams, createPaginatedResponse } from "../../utils/pagination"
 
 export default defineEventHandler(async (event) => {
   const db = useDB(event)
   const query = getQuery(event)
-  const { ageCategory, eventType } = query
+  const { ageCategory, eventType, registrationOpen } = query
   const { page, limit, search, sortBy, sortOrder, filters } = getPaginationParams(query)
 
   try {
@@ -15,6 +15,9 @@ export default defineEventHandler(async (event) => {
     // Use filters or query params (backward compatibility)
     const filterAgeCategory = filters?.ageCategory || ageCategory
     const filterEventType = filters?.eventType || eventType
+    // When registrationOpen=true, only events where registration is open (registrationClosed = false). Omit filter = return all.
+    const filterRegistrationOpen = filters?.registrationOpen ?? registrationOpen
+    const onlyOpenRegistration = filterRegistrationOpen === true || filterRegistrationOpen === "true"
 
     if (filterAgeCategory && filterEventType) {
       // For Special category, don't include Combined events
@@ -38,6 +41,13 @@ export default defineEventHandler(async (event) => {
       }
     } else if (filterEventType) {
       whereClause = eq(events.eventType, filterEventType as "Individual" | "Group" | "Combined")
+    }
+
+    // Filter by registration open when requested (e.g. spot registration)
+    if (onlyOpenRegistration) {
+      whereClause = whereClause
+        ? and(whereClause, eq(events.registrationClosed, false))
+        : eq(events.registrationClosed, false)
     }
 
     const [totalResult] = await db
@@ -74,9 +84,13 @@ export default defineEventHandler(async (event) => {
       total = result.length // Adjust total for filtered results
     }
 
+    const responseFilters: Record<string, any> = { ageCategory: filterAgeCategory, eventType: filterEventType }
+    if (filterRegistrationOpen !== undefined) {
+      responseFilters.registrationOpen = filterRegistrationOpen
+    }
     return {
       success: true,
-      ...createPaginatedResponse(result, total, { page, limit, search, sortBy, sortOrder, filters: { ageCategory: filterAgeCategory, eventType: filterEventType } }),
+      ...createPaginatedResponse(result, total, { page, limit, search, sortBy, sortOrder, filters: responseFilters }),
     }
   } catch (error) {
     console.error("Error fetching events:", error)

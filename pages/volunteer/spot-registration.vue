@@ -506,7 +506,7 @@ const loadEvents = async () => {
   }
 
   try {
-    const response = await $fetch(`/api/events/by-category?ageCategory=${selectedAgeCategory.value}&limit=100`)
+    const response = await $fetch(`/api/events/by-category?ageCategory=${selectedAgeCategory.value}&limit=100&registrationOpen=true`)
     availableEvents.value = response.data || response.events || []
   } catch (err) {
     console.error('Failed to fetch events:', err)
