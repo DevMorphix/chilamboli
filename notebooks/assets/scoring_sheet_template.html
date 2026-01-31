@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 7mm;
+            border: 0.75px solid #000;
+        }
+        
+        @font-face {
+            font-family: 'Chilanka';
+            src: url('Chilanka-Regular.ttf') format('truetype');
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 8pt;
+            color: #000;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .page-wrapper {
+            padding: 10mm;
+            margin: 0;
+            width: 100%;
+            min-height: 100%;
+            box-sizing: border-box;
+        }
+        
+        .main-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        
+        .main-table td,
+        .main-table th {
+            border: 0.75px solid #000;
+            padding: 4pt;
+            vertical-align: middle;
+        }
+        
+        .title-row {
+            border-bottom: none;
+            background-color: transparent;
+        }
+        
+        .title-row td {
+            border-bottom: none;
+        }
+        
+        .title-row + .title-row td {
+            border-top: none !important;
+        }
+        
+        .title {
+            font-family: 'Chilanka', 'Times New Roman', Times, serif;
+            font-size: 14pt;
+            text-align: center;
+            font-weight: bold;
+            padding: 1.5mm 0 0.5mm 0 !important;
+            border-bottom: none !important;
+        }
+        
+        .subtitle {
+            font-family: 'Chilanka', 'Times New Roman', Times, serif;
+            border-top: none !important;
+            font-size: 11pt;
+            text-align: center;
+            font-weight: normal;
+            padding: 0 0 1.5mm 0 !important;
+        }
+        
+        .event-info-row {
+            background-color: transparent;
+        }
+        
+        .event-info-cell {
+            text-align: left;
+            font-size: 8pt;
+            padding: 6pt 8pt !important;
+        }
+        
+        .event-info-left {
+            text-align: left;
+        }
+        
+        .event-info-center {
+            text-align: center;
+        }
+        
+        .results-header-row {
+            background-color: #E0E0E0;
+        }
+        
+        .results-header-row th {
+            background-color: #E0E0E0;
+            border: 0.75px solid #000;
+            padding: 8pt 2pt;
+            text-align: center;
+            font-weight: bold;
+            font-size: 8pt;
+            height: 8mm;
+        }
+        
+        .results-data-row {
+            background-color: #FFFFFF;
+        }
+        
+        .results-data-row td {
+            border: 0.75px solid #000;
+            padding: 4pt 2pt;
+            background-color: #FFFFFF;
+            font-size: 8pt;
+            vertical-align: middle;
+        }
+        
+        .col-chest {
+            width: 10mm;
+            text-align: center;
+        }
+        
+        .col-mark {
+            width: 25mm;
+            text-align: center;
+        }
+        
+        .col-total {
+            width: 12mm;
+            text-align: center;
+        }
+        
+        .col-portal {
+            width: 6mm;
+            text-align: center;
+        }
+        
+        .signature-section {
+            margin-top: 12mm;
+            width: 100%;
+            min-height: 20mm;
+        }
+        
+        .signature-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .signature-table td {
+            border: none;
+            padding: 0;
+            vertical-align: bottom;
+        }
+        
+        .signature-spacer-cell {
+            width: 70%;
+        }
+        
+        .judge-signature-cell {
+            width: 30%;
+            text-align: right;
+            vertical-align: bottom;
+        }
+        
+        .signature-block {
+            display: inline-block;
+            text-align: center;
+            width: 50mm;
+        }
+        
+        .signature-line {
+            border-bottom: 0.75px solid #000;
+            margin-bottom: 2mm;
+            width: 100%;
+            height: 4mm;
+        }
+        
+        .signature-name {
+            font-size: 8pt;
+            margin-bottom: 1mm;
+            text-align: center;
+            font-weight: normal;
+        }
+        
+        .signature-label {
+            font-size: 8pt;
+            text-align: center;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+    <table class="main-table">
+        <!-- Title Row -->
+        <tr class="title-row">
+            <td colspan="8" class="title">ചിലമ്പൊലി 2026</td>
+        </tr>
+        
+        <!-- Subtitle Row -->
+        <tr class="title-row">
+            <td colspan="8" class="subtitle">6-മത് സംസ്ഥാന സ്പെഷ്യൽ സ്കൂൾ കലാമേള</td>
+        </tr>
+        
+        <!-- Event Information Row -->
+        <tr class="event-info-row">
+            <td class="event-info-cell event-info-left" colspan="3">
+                Event : <b>{{event_name}}</b>
+            </td>
+            <td class="event-info-cell event-info-center" colspan="2">
+                Type : <b>{{event_type}}</b>
+            </td>
+            <td class="event-info-cell event-info-center" colspan="3">
+                Category : <b>{{category}}</b>
+            </td>
+        </tr>
+        
+        <!-- Scoring Sheet Header -->
+        <tr class="results-header-row">
+            <th class="col-chest">Chest No.</th>
+            <th class="col-mark"></th>
+            <th class="col-mark"></th>
+            <th class="col-mark"></th>
+            <th class="col-mark"></th>
+            <th class="col-mark"></th>
+            <th class="col-total">Total (50)</th>
+            <th class="col-portal">Done</th>
+        </tr>
+        
+        <!-- Data Rows (chest + 5 marks + total + portal tick) -->
+        {{table_rows}}
+    </table>
+    
+    <!-- Judge Signature Section (right-aligned) -->
+    <div class="signature-section">
+        <table class="signature-table">
+            <tr>
+                <td class="signature-spacer-cell"></td>
+                <td class="judge-signature-cell">
+                    <div class="signature-block">
+                        <div class="signature-line">&nbsp;</div>
+                        <div class="signature-name"></div>
+                        <div class="signature-label">Judge</div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+    </div>
+</body>
+</html>
