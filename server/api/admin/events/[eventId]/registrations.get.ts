@@ -1,6 +1,6 @@
 import { useDB } from "../../../../utils/db"
-import { events, registrations, schools } from "../../../../database/schema"
-import { eq, asc } from "drizzle-orm"
+import { events, registrations, schools, registrationParticipants, students } from "../../../../database/schema"
+import { eq, asc, and, inArray } from "drizzle-orm"
 
 // Get event and its registrations (for scoring sheet etc.). No judgments required.
 export default defineEventHandler(async (event) => {
@@ -42,10 +42,38 @@ export default defineEventHandler(async (event) => {
       .where(eq(registrations.eventId, eventId))
       .orderBy(asc(registrations.chestNumber), asc(registrations.createdAt))
 
+    // Fetch student names from participants (for individual events where teamName is blank)
+    const regIds = regsWithSchools.map((r) => r.id)
+    const participantRows =
+      regIds.length > 0
+        ? await db
+            .select({
+              registrationId: registrationParticipants.registrationId,
+              studentName: students.studentName,
+            })
+            .from(registrationParticipants)
+            .innerJoin(students, eq(registrationParticipants.participantId, students.id))
+            .where(
+              and(
+                eq(registrationParticipants.participantType, "student"),
+                inArray(registrationParticipants.registrationId, regIds)
+              )
+            )
+        : []
+    const studentNamesByRegId = new Map<string, string>()
+    for (const row of participantRows) {
+      const existing = studentNamesByRegId.get(row.registrationId) ?? ""
+      studentNamesByRegId.set(
+        row.registrationId,
+        existing ? `${existing}, ${row.studentName}` : row.studentName
+      )
+    }
+
     const registrationsList = regsWithSchools.map((r) => ({
       id: r.id,
       chestNumber: r.chestNumber ?? null,
       teamName: r.teamName ?? null,
+      displayName: (r.teamName ?? "") || (studentNamesByRegId.get(r.id) ?? ""),
       schoolId: r.schoolId ?? null,
       schoolName: r.schoolName ?? "-",
       schoolCode: r.schoolCode ?? null,
