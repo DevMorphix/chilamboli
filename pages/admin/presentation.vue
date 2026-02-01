@@ -242,8 +242,8 @@
       </Transition>
     </div>
 
-    <!-- View Indicators - Left Side (Districts & Schools) -->
-    <div class="fixed left-6 top-1/2 transform -translate-y-1/2 z-20">
+    <!-- View Indicators - Left Side (Districts & Schools) (hidden on mobile) -->
+    <div class="hidden md:flex fixed left-6 top-1/2 transform -translate-y-1/2 z-20">
       <div class="flex flex-col gap-6 bg-white/95 backdrop-blur-sm rounded-2xl px-4 py-6 border border-gray-200 shadow-lg">
         <!-- Districts: dots first, then name -->
         <div class="flex flex-col items-center gap-2">
@@ -275,8 +275,8 @@
       </div>
     </div>
 
-    <!-- View Indicators - Right Side (Events) - rotated 180° so letters face inwards -->
-    <div v-if="totalEventsPages > 0" class="fixed right-6 top-1/2 transform -translate-y-1/2 rotate-180 z-20">
+    <!-- View Indicators - Right Side (Events) - rotated 180° so letters face inwards (hidden on mobile) -->
+    <div v-if="totalEventsPages > 0" class="hidden md:flex fixed right-6 top-1/2 transform -translate-y-1/2 rotate-180 z-20">
       <div class="flex flex-col gap-6 bg-white/95 backdrop-blur-sm rounded-2xl px-4 py-6 border border-gray-200 shadow-lg">
         <!-- Events: dots first, then name (name counter-rotated to read inward) -->
         <div class="flex flex-col items-center gap-2">
