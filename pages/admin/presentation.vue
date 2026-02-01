@@ -242,46 +242,54 @@
       </Transition>
     </div>
 
-    <!-- View Indicator -->
-    <div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20">
-      <div class="flex items-center gap-3 bg-white/95 backdrop-blur-sm rounded-full px-5 py-3 border border-gray-200 shadow-lg">
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-medium text-gray-600">Districts</span>
-          <div class="flex items-center gap-1">
+    <!-- View Indicators - Left Side (Districts & Schools) -->
+    <div class="fixed left-6 top-1/2 transform -translate-y-1/2 z-20">
+      <div class="flex flex-col gap-6 bg-white/95 backdrop-blur-sm rounded-2xl px-4 py-6 border border-gray-200 shadow-lg">
+        <!-- Districts: dots first, then name -->
+        <div class="flex flex-col items-center gap-2">
+          <div class="flex flex-col items-center gap-1.5">
             <div 
               v-for="i in totalDistrictPages"
               :key="`district-${i}`"
-              class="h-2 rounded-full transition-all duration-500 ease-out"
-              :class="currentView === 'district' && currentDistrictPage === i - 1 ? 'bg-blue-600 w-8' : 'bg-gray-300 w-2'"
+              class="w-2 rounded-full transition-all duration-500 ease-out"
+              :class="currentView === 'district' && currentDistrictPage === i - 1 ? 'bg-blue-600 h-8' : 'bg-gray-300 h-2'"
             ></div>
           </div>
+          <span class="text-xs font-medium text-gray-600 writing-mode-vertical-rl rotate-180">Districts</span>
         </div>
-        <div class="h-4 w-px bg-gray-300"></div>
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-medium text-gray-600">Schools</span>
-          <div class="flex items-center gap-1">
+        
+        <div class="w-full h-px bg-gray-300"></div>
+        
+        <!-- Schools: dots first, then name -->
+        <div class="flex flex-col items-center gap-2">
+          <div class="flex flex-col items-center gap-1.5">
             <div 
               v-for="i in totalSchoolPages"
               :key="`school-${i}`"
-              class="h-2 rounded-full transition-all duration-500 ease-out"
-              :class="currentView === 'school' && currentSchoolPage === i - 1 ? 'bg-green-600 w-8' : 'bg-gray-300 w-2'"
+              class="w-2 rounded-full transition-all duration-500 ease-out"
+              :class="currentView === 'school' && currentSchoolPage === i - 1 ? 'bg-green-600 h-8' : 'bg-gray-300 h-2'"
             ></div>
           </div>
+          <span class="text-xs font-medium text-gray-600 writing-mode-vertical-rl rotate-180">Schools</span>
         </div>
-        <template v-if="totalEventsPages > 0">
-          <div class="h-4 w-px bg-gray-300"></div>
-          <div class="flex items-center gap-2">
-            <span class="text-xs font-medium text-gray-600">Events</span>
-            <div class="flex items-center gap-1">
-              <div 
-                v-for="i in totalEventsPages"
-                :key="`events-${i}`"
-                class="h-2 rounded-full transition-all duration-500 ease-out"
-                :class="currentView === 'events' && currentEventsPage === i - 1 ? 'bg-purple-600 w-8' : 'bg-gray-300 w-2'"
-              ></div>
-            </div>
+      </div>
+    </div>
+
+    <!-- View Indicators - Right Side (Events) - rotated 180° so letters face inwards -->
+    <div v-if="totalEventsPages > 0" class="fixed right-6 top-1/2 transform -translate-y-1/2 rotate-180 z-20">
+      <div class="flex flex-col gap-6 bg-white/95 backdrop-blur-sm rounded-2xl px-4 py-6 border border-gray-200 shadow-lg">
+        <!-- Events: dots first, then name (name counter-rotated to read inward) -->
+        <div class="flex flex-col items-center gap-2">
+          <div class="flex flex-col items-center gap-1.5">
+            <div 
+              v-for="i in totalEventsPages"
+              :key="`events-${i}`"
+              class="w-2 rounded-full transition-all duration-500 ease-out"
+              :class="currentView === 'events' && currentEventsPage === i - 1 ? 'bg-purple-600 h-8' : 'bg-gray-300 h-2'"
+            ></div>
           </div>
-        </template>
+          <span class="text-xs font-medium text-gray-600 writing-mode-vertical-rl -rotate-180">Events</span>
+        </div>
       </div>
     </div>
   </div>
@@ -512,6 +520,12 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* Vertical text for indicators */
+.writing-mode-vertical-rl {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.6s ease, transform 0.6s ease;
