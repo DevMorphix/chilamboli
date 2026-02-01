@@ -467,6 +467,22 @@ const formatTime = (timestamp: number) => {
   })
 }
 
+// Get the interval based on the current view type
+const getViewInterval = () => {
+  if (currentView.value === 'events') {
+    return 8 * 1000 // 8 seconds for events
+  }
+  return 15 * 1000 // 15 seconds for school and district
+}
+
+// Schedule next view cycle with dynamic timing
+const scheduleNextCycle = () => {
+  viewCycleInterval = setTimeout(() => {
+    cycleViews()
+    scheduleNextCycle()
+  }, getViewInterval())
+}
+
 onMounted(() => {
   // Load immediately
   loadLeaderboards()
@@ -479,10 +495,8 @@ onMounted(() => {
     loadLeaderboards()
   }, 60 * 1000)
   
-  // Cycle views every 10 seconds
-  viewCycleInterval = setInterval(() => {
-    cycleViews()
-  }, 10 * 1000)
+  // Start cycling views with dynamic timing (15s for school/district, 8s for events)
+  scheduleNextCycle()
 })
 
 onUnmounted(() => {
@@ -491,7 +505,7 @@ onUnmounted(() => {
     pollInterval = null
   }
   if (viewCycleInterval) {
-    clearInterval(viewCycleInterval)
+    clearTimeout(viewCycleInterval)
     viewCycleInterval = null
   }
 })
