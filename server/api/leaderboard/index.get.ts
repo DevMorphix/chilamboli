@@ -9,15 +9,25 @@ import {
   registrationParticipants,
   positionRewards,
 } from "../../database/schema"
-import { eq, sql, and, inArray } from "drizzle-orm"
+import { eq, sql, and, or, inArray } from "drizzle-orm"
 import { calculateGrade } from "../../utils/grading"
 
 const CACHE_PREFIX = "leaderboard:"
-const CACHE_TTL = 60 * 60 // 1 hour in seconds
+const CACHE_TTL = 60 * 60
+const MAX_SQL_VARS = 100
 
 interface CachedLeaderboard {
   data: any
   capturedAt: number
+}
+
+function inArraySafe(column: any, ids: string[]) {
+  if (ids.length <= MAX_SQL_VARS) return inArray(column, ids)
+  const parts: ReturnType<typeof inArray>[] = []
+  for (let i = 0; i < ids.length; i += MAX_SQL_VARS) {
+    parts.push(inArray(column, ids.slice(i, i + MAX_SQL_VARS)))
+  }
+  return or(...parts)
 }
 
 function getCacheKey(type: string, context?: string, eventId?: string, gender?: string, limit?: number): string {
@@ -92,7 +102,7 @@ export default defineEventHandler(async (event) => {
         eq(registrationParticipants.participantType, "student")
       ]
       if (completedEventIds && completedEventIds.length > 0) {
-        bestPerformerWhereConditions.push(inArray(registrations.eventId, completedEventIds))
+        bestPerformerWhereConditions.push(inArraySafe(registrations.eventId, completedEventIds))
       }
       const bestPerformerWhereClause = and(...bestPerformerWhereConditions)
       
@@ -104,7 +114,7 @@ export default defineEventHandler(async (event) => {
         .from(eventJudges)
       if (completedEventIds && completedEventIds.length > 0) {
         bestPerformerJudgesQuery = bestPerformerJudgesQuery.where(
-          inArray(eventJudges.eventId, completedEventIds)
+          inArraySafe(eventJudges.eventId, completedEventIds)
         )
       }
       const [eventJudgesCount, registrationResults] = await Promise.all([
@@ -174,14 +184,14 @@ export default defineEventHandler(async (event) => {
       })
       .from(eventJudges)
     if (completedEventIds && completedEventIds.length > 0) {
-      eventJudgesCountQuery = eventJudgesCountQuery.where(inArray(eventJudges.eventId, completedEventIds))
+      eventJudgesCountQuery = eventJudgesCountQuery.where(inArraySafe(eventJudges.eventId, completedEventIds))
     } else if (eventId) {
       eventJudgesCountQuery = eventJudgesCountQuery.where(eq(eventJudges.eventId, eventId))
     }
 
     const schoolDistrictWhereConditions: any[] = []
     if (completedEventIds && completedEventIds.length > 0) {
-      schoolDistrictWhereConditions.push(inArray(registrations.eventId, completedEventIds))
+      schoolDistrictWhereConditions.push(inArraySafe(registrations.eventId, completedEventIds))
     }
     const schoolDistrictWhereClause =
       schoolDistrictWhereConditions.length > 0 ? and(...schoolDistrictWhereConditions) : undefined
@@ -189,7 +199,7 @@ export default defineEventHandler(async (event) => {
     const eventWhereConditions: any[] = []
     if (eventId) eventWhereConditions.push(eq(registrations.eventId, eventId))
     if (completedEventIds && completedEventIds.length > 0) {
-      eventWhereConditions.push(inArray(registrations.eventId, completedEventIds))
+      eventWhereConditions.push(inArraySafe(registrations.eventId, completedEventIds))
     }
     const eventWhereClause = eventWhereConditions.length > 0 ? and(...eventWhereConditions) : undefined
 
@@ -201,6 +211,7 @@ export default defineEventHandler(async (event) => {
       schoolCode: string | null
       location: string | null
       totalScore: number
+      rewardPoints: number
     }
     type EventRow = SchoolDistrictRow & {
       eventName: string
@@ -208,9 +219,10 @@ export default defineEventHandler(async (event) => {
       ageCategory: string
       chestNumber: string | null
       teamName: string | null
+      studentNames: string | null
     }
 
-    const dataQuery = async () => {
+    const dataQuery = async (eventLimit?: number) => {
       if (type === "school" || type === "district" || type === "location") {
         let q = db
           .select({
@@ -221,10 +233,12 @@ export default defineEventHandler(async (event) => {
             schoolCode: schools.schoolCode,
             location: schools.location,
             totalScore: sql<number>`COALESCE(SUM(${judgments.score}), 0)`.as("total_score"),
+            rewardPoints: sql<number>`COALESCE(MAX(${positionRewards.rewardPoints}), 0)`.as("reward_points"),
           })
           .from(registrations)
           .innerJoin(judgments, eq(registrations.id, judgments.registrationId))
           .leftJoin(schools, eq(registrations.schoolId, schools.id))
+          .leftJoin(positionRewards, eq(registrations.id, positionRewards.registrationId))
         if (schoolDistrictWhereClause) q = q.where(schoolDistrictWhereClause)
         return q.groupBy(registrations.id, schools.id).having(
           sql`COALESCE(SUM(${judgments.score}), 0) > 0`
@@ -243,45 +257,37 @@ export default defineEventHandler(async (event) => {
           schoolName: schools.name,
           schoolCode: schools.schoolCode,
           totalScore: sql<number>`COALESCE(SUM(${judgments.score}), 0)`.as("total_score"),
+          rewardPoints: sql<number>`COALESCE(MAX(${positionRewards.rewardPoints}), 0)`.as("reward_points"),
+          studentNames: sql<string | null>`(SELECT GROUP_CONCAT(s.student_name) FROM registration_participants rp INNER JOIN students s ON rp.participant_id = s.id WHERE rp.registration_id = ${registrations.id} AND rp.participant_type = 'student')`.as("student_names"),
         })
         .from(registrations)
         .innerJoin(judgments, eq(registrations.id, judgments.registrationId))
         .innerJoin(events, eq(registrations.eventId, events.id))
         .leftJoin(schools, eq(registrations.schoolId, schools.id))
+        .leftJoin(positionRewards, eq(registrations.id, positionRewards.registrationId))
       if (eventWhereClause) q = q.where(eventWhereClause)
-      return q.groupBy(registrations.id, events.id, schools.id).having(
+      q = q.groupBy(registrations.id, events.id, schools.id).having(
         sql`COALESCE(SUM(${judgments.score}), 0) > 0`
-      ) as Promise<EventRow[]>
+      )
+      if (eventLimit !== undefined && eventLimit > 0) {
+        q = q.orderBy(sql`COALESCE(SUM(${judgments.score}), 0) DESC`).limit(eventLimit)
+      }
+      return q as Promise<EventRow[]>
     }
 
     const [eventJudgesCount, registrationData] = await Promise.all([
       eventJudgesCountQuery.groupBy(eventJudges.eventId),
-      dataQuery(),
+      dataQuery(type === "event" ? limit : undefined),
     ])
 
     const judgesCountMap = new Map(eventJudgesCount.map((ej) => [ej.eventId, ej.judgeCount]))
 
     if (type === "school" || type === "district" || type === "location") {
       const registrationResults = registrationData as SchoolDistrictRow[]
-      const registrationIds = registrationResults.map((r) => r.registrationId).filter(Boolean)
-      const rewards =
-        registrationIds.length > 0
-          ? await db
-              .select({
-                registrationId: positionRewards.registrationId,
-                rewardPoints: positionRewards.rewardPoints,
-              })
-              .from(positionRewards)
-              .where(inArray(positionRewards.registrationId, registrationIds))
-          : []
-      const rewardsMap = new Map(rewards.map((r) => [r.registrationId, r.rewardPoints]))
-
-      // Calculate grade points and aggregate (including reward points)
       const registrationsWithGradePoints = registrationResults.map((r) => {
         const maxScore = judgesCountMap.get(r.eventId) || 1
         const gradeInfo = calculateGrade(r.totalScore || 0, maxScore * 50)
-        const rewardPoints = rewardsMap.get(r.registrationId) || 0
-        return { ...r, gradePoint: gradeInfo.gradePoint + rewardPoints }
+        return { ...r, gradePoint: gradeInfo.gradePoint + (r.rewardPoints || 0) }
       })
 
       if (type === "school") {
@@ -340,52 +346,15 @@ export default defineEventHandler(async (event) => {
       return result
     }
 
-    // Event leaderboard: use registrationData from parallel dataQuery()
+    // Event leaderboard
     const results = registrationData as EventRow[]
-    const registrationIds = results.map((r) => r.registrationId).filter(Boolean)
-    const [rewards, participantRows] = await Promise.all([
-      registrationIds.length > 0
-        ? db
-            .select({
-              registrationId: positionRewards.registrationId,
-              rewardPoints: positionRewards.rewardPoints,
-            })
-            .from(positionRewards)
-            .where(inArray(positionRewards.registrationId, registrationIds))
-        : [],
-      registrationIds.length > 0
-        ? db
-            .select({
-              registrationId: registrationParticipants.registrationId,
-              studentName: students.studentName,
-            })
-            .from(registrationParticipants)
-            .innerJoin(students, eq(registrationParticipants.participantId, students.id))
-            .where(
-              and(
-                eq(registrationParticipants.participantType, "student"),
-                inArray(registrationParticipants.registrationId, registrationIds)
-              )
-            )
-        : [],
-    ])
-    const rewardsMap = new Map(rewards.map((r) => [r.registrationId, r.rewardPoints]))
-    const studentNamesByRegId = new Map<string, string>()
-    for (const row of participantRows) {
-      const existing = studentNamesByRegId.get(row.registrationId) || ""
-      studentNamesByRegId.set(
-        row.registrationId,
-        existing ? `${existing}, ${row.studentName}` : row.studentName
-      )
-    }
-
     const leaderboard = results
       .map((r) => {
         const maxScore = judgesCountMap.get(r.eventId) || 1
         const gradeInfo = calculateGrade(r.totalScore || 0, maxScore * 50)
-        const rewardPoints = rewardsMap.get(r.registrationId) || 0
+        const rewardPoints = r.rewardPoints || 0
         const teamName = r.teamName || null
-        const studentName = teamName ? null : (studentNamesByRegId.get(r.registrationId) || null)
+        const studentName = teamName ? null : (r.studentNames || null)
         return {
           registrationId: r.registrationId,
           eventId: r.eventId,

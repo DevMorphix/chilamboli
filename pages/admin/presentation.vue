@@ -177,6 +177,68 @@
             </div>
           </div>
         </div>
+
+        <!-- Event-wise results (1st, 2nd, 3rd only; no points) -->
+        <div
+          v-if="currentView === 'events'"
+          key="events"
+          class="w-full"
+        >
+          <template v-if="currentEventLeaderboard">
+            <div class="text-center mb-8 animate-fade-in">
+              <h1 class="text-4xl font-bold text-gray-900 mb-2 tracking-tight animate-pulse-subtle" style="font-family: 'Poppins', sans-serif;">
+                {{ currentEventLeaderboard.event.name }}
+              </h1>
+              <p class="text-base text-gray-600 font-medium">{{ currentEventLeaderboard.event.eventType }} • {{ currentEventLeaderboard.event.ageCategory }}</p>
+            </div>
+            <div v-if="currentEventLeaderboard.leaderboard.length === 0" class="text-center py-16">
+              <p class="text-lg text-gray-400 font-medium">No results for this event yet.</p>
+            </div>
+            <div v-else class="space-y-3">
+              <div
+                v-for="(entry, index) in currentEventLeaderboard.leaderboard"
+                :key="entry.rank"
+                class="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 px-6 py-4 animate-slide-in"
+                :style="{ animationDelay: `${index * 0.05}s` }"
+                :class="{
+                  'bg-gradient-to-r from-amber-50 via-amber-50/50 to-white border-amber-300 shadow-md animate-glow': entry.rank === 1,
+                  'bg-gradient-to-r from-gray-50 via-gray-50/50 to-white border-gray-300 shadow-md': entry.rank === 2,
+                  'bg-gradient-to-r from-orange-50 via-orange-50/50 to-white border-orange-300 shadow-md': entry.rank === 3,
+                }"
+              >
+                <div class="flex items-center gap-6">
+                  <div
+                    v-if="entry.rank === 1"
+                    class="w-14 h-14 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg flex-shrink-0"
+                  >
+                    <span class="text-xl font-bold text-white">1</span>
+                  </div>
+                  <div
+                    v-else-if="entry.rank === 2"
+                    class="w-14 h-14 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center shadow-lg flex-shrink-0"
+                  >
+                    <span class="text-xl font-bold text-white">2</span>
+                  </div>
+                  <div
+                    v-else-if="entry.rank === 3"
+                    class="w-14 h-14 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-lg flex-shrink-0"
+                  >
+                    <span class="text-xl font-bold text-white">3</span>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-xl font-semibold text-gray-900 truncate animate-text-shimmer" style="font-family: 'Poppins', sans-serif;">
+                      {{ currentEventLeaderboard.event.eventType === 'Individual' ? (entry.studentName || '–') : (entry.teamName || '–') }}
+                    </h3>
+                    <p v-if="entry.schoolName" class="text-sm text-gray-600 mt-0.5 truncate">{{ entry.schoolName }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+          <div v-else class="text-center py-16">
+            <p class="text-lg text-gray-400 font-medium">No event results available.</p>
+          </div>
+        </div>
       </Transition>
     </div>
 
@@ -206,6 +268,20 @@
             ></div>
           </div>
         </div>
+        <template v-if="totalEventsPages > 0">
+          <div class="h-4 w-px bg-gray-300"></div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-medium text-gray-600">Events</span>
+            <div class="flex items-center gap-1">
+              <div 
+                v-for="i in totalEventsPages"
+                :key="`events-${i}`"
+                class="h-2 rounded-full transition-all duration-500 ease-out"
+                :class="currentView === 'events' && currentEventsPage === i - 1 ? 'bg-purple-600 w-8' : 'bg-gray-300 w-2'"
+              ></div>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
   </div>
@@ -224,21 +300,35 @@ useHead({
   ]
 })
 
+interface EventLeaderboardEntry {
+  rank: number
+  teamName: string | null
+  studentName: string | null
+  schoolName: string | null
+}
+interface EventLeaderboardItem {
+  event: { id: string; name: string; eventType: string; ageCategory: string }
+  leaderboard: EventLeaderboardEntry[]
+}
 const containerRef = ref<HTMLElement | null>(null)
 const districtLeaderboard = ref<any[]>([])
 const schoolLeaderboard = ref<any[]>([])
+const eventLeaderboards = ref<EventLeaderboardItem[]>([])
 const loading = ref(false)
 const lastUpdated = ref<number | null>(null)
-const currentView = ref<'district' | 'school'>('district')
+const currentView = ref<'district' | 'school' | 'events'>('district')
 const currentDistrictPage = ref(0)
 const currentSchoolPage = ref(0)
-const itemsPerPage = 6
+const currentEventsPage = ref(0)
+const itemsPerPage = 5
 let pollInterval: NodeJS.Timeout | null = null
 let viewCycleInterval: NodeJS.Timeout | null = null
 
 // Computed properties for pagination
 const totalDistrictPages = computed(() => Math.ceil(districtLeaderboard.value.length / itemsPerPage) || 1)
 const totalSchoolPages = computed(() => Math.ceil(schoolLeaderboard.value.length / itemsPerPage) || 1)
+const totalEventsPages = computed(() => eventLeaderboards.value.length || 1)
+const currentEventLeaderboard = computed(() => eventLeaderboards.value[currentEventsPage.value] ?? null)
 
 const paginatedDistrictLeaderboard = computed(() => {
   const start = currentDistrictPage.value * itemsPerPage
@@ -290,12 +380,32 @@ const fetchSchoolLeaderboard = async () => {
   }
 }
 
+const fetchEventLeaderboards = async () => {
+  try {
+    const response = await $fetch('/api/leaderboard/events', {
+      params: {
+        context: 'presentation', // Only completed events
+        resultsLimit: 3, // 1st, 2nd, 3rd only
+      },
+    }) as { success: boolean; events?: EventLeaderboardItem[] }
+    if (response.success && response.events) {
+      eventLeaderboards.value = response.events
+    } else {
+      eventLeaderboards.value = []
+    }
+  } catch (err) {
+    console.error('Failed to fetch event leaderboards:', err)
+    eventLeaderboards.value = []
+  }
+}
+
 const loadLeaderboards = async () => {
   loading.value = true
   try {
     await Promise.all([
       fetchDistrictLeaderboard(),
-      fetchSchoolLeaderboard()
+      fetchSchoolLeaderboard(),
+      fetchEventLeaderboards(),
     ])
     lastUpdated.value = Date.now()
   } finally {
@@ -305,22 +415,31 @@ const loadLeaderboards = async () => {
 
 const cycleViews = () => {
   if (currentView.value === 'district') {
-    // Check if there are more district pages
     if (currentDistrictPage.value < totalDistrictPages.value - 1) {
       currentDistrictPage.value++
     } else {
-      // All district pages shown, switch to schools
       currentView.value = 'school'
-      currentDistrictPage.value = 0 // Reset for next cycle
+      currentDistrictPage.value = 0
     }
-  } else {
-    // On school view
+  } else if (currentView.value === 'school') {
     if (currentSchoolPage.value < totalSchoolPages.value - 1) {
       currentSchoolPage.value++
     } else {
-      // All school pages shown, switch back to districts
+      // Only show events phase when there are published events
+      currentSchoolPage.value = 0
+      if (totalEventsPages.value > 0) {
+        currentView.value = 'events'
+      } else {
+        currentView.value = 'district'
+      }
+    }
+  } else {
+    // events view (only reached when we have published events)
+    if (currentEventsPage.value < totalEventsPages.value - 1) {
+      currentEventsPage.value++
+    } else {
       currentView.value = 'district'
-      currentSchoolPage.value = 0 // Reset for next cycle
+      currentEventsPage.value = 0
     }
   }
 }
